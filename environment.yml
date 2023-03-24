@@ -9,6 +9,7 @@ dependencies:
   - pytorch::pytorch=2.0
   - pytorch-cuda=11.7
   - huggingface::transformers=4.27.*
+  - huggingface::datasets=2.10.*
   - jupyter=1.0.0
   - conda-forge::pandas=1.5.*
   - conda-forge::matplotlib=3.7.*
