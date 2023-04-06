@@ -6,13 +6,12 @@ from pprint import pformat
 import pandas as pd
 import torch
 from datasets import Dataset
-from torch import binary_cross_entropy_with_logits
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 from transformers import PreTrainedTokenizer, AutoTokenizer, BertForSequenceClassification, DefaultDataCollator
 from transformers.utils import PaddingStrategy
 
+from src.trainer import train
 from src.utils import setup_logging, dummy_preprocess_one
 
 logger = logging.getLogger(__name__)
@@ -77,6 +76,22 @@ parser.add_argument(
     default=1,
     help="Number of epochs. Defaults to 1."
 )
+
+parser.add_argument(
+    "--eval_steps",
+    type=int,
+    default=500,
+    help="Number of gradient steps to perform between each evaluation."
+)
+
+parser.add_argument(
+    "--logging_steps",
+    type=int,
+    default=100,
+    help="Number of steps to perform between each loss logging."
+)
+
+
 
 def get_tokenization_fn(
         tokenizer: PreTrainedTokenizer,
@@ -192,6 +207,7 @@ def main():
         problem_type="multi-label"
     )
     model = torch.compile(model)
+    # TODO
 
     logger.info(f"Model loaded successfully.")
 
@@ -204,21 +220,21 @@ def main():
         collate_fn=DefaultDataCollator(return_tensors="pt")
     )
 
+    # TODO - make configurable
     optimizer = Adam(model.parameters(), lr=2e-5, weight_decay=1e-4)
 
-    for epoch in range(1, args.epochs + 1):
-        for i, batch in tqdm(enumerate(dataloader), total=len(dataloader), desc=f"Epoch {epoch}") :
-            output = model(**batch)
-            loss = binary_cross_entropy_with_logits(
-                input=output["logits"],
-                target=batch["labels"]
-            )
-            loss.backward()
-            optimizer.step()
-            optimizer.zero_grad()
+    train(
+        model=model,
+        tokenizer=tokenizer,
+        optimizer=optimizer,
+        train_dataloader=dataloader,
+        val_dataloader=None,
+        epochs=args.epochs,
+        eval_steps=args.eval_steps,
+        loss_logging_steps=args.logs_logging_steps
+    )
 
-            if (i+1) % 10 == 0:
-                print(f"loss = {loss}")
+    logger.warning("Training complete.")
 
 
 if __name__ == "__main__":
