@@ -10,15 +10,13 @@ dependencies:
   - pytorch-cuda=11.7
   - huggingface::transformers=4.27.*
   - huggingface::datasets=2.10.*
-  - huggingface::evaluate=0.4.0
   - jupyter=1.0.0
   - conda-forge::pandas=1.5.*
   - conda-forge::matplotlib=3.7.*
   - conda-forge::scikit-learn=1.2.*
   - conda-forge::numpy=1.24.*
   - conda-forge::mlflow=2.2.*
-# spacy?
-# datasets?
-# accelerate?
-# evaluate?
+  - pip=23.0.1
+  - pip:
+      - evaluate==0.4.*
 prefix: /data2/jvidakovic/miniconda3/envs/dapters
