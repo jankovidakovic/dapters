@@ -1,7 +1,15 @@
+import json
+from pprint import pformat
 from typing import Callable
 import pandas as pd
 import logging
 import os
+
+import torch
+from transformers import PreTrainedTokenizer
+from transformers.utils import PaddingStrategy
+
+logger = logging.getLogger(__name__)
 
 
 def pipeline(*fs) -> Callable:
@@ -68,3 +76,65 @@ def setup_logging(args):
         ],
     )
     logging.info(f"Logging to file: {os.path.abspath(log_filename)}")
+
+
+def get_label_converter(labels: list[str]):
+    """ Factory for multihot label encoder.
+
+    Given a list of labels, converts multiple columns with label names
+    to a single column named 'labels'. The newly created column
+    contains multihot encoding of labels.
+
+    :param labels: list of labels
+    :return: multihot label encoder
+    """
+
+    def get_multihot(example):
+        """ Converts multiple label columns into a single multihot encoding.
+
+        :param example: example which contains labels as separate column.
+        :return: multihot encoding of all labels, stored in new 'labels' column.
+        """
+
+        multihot = torch.zeros(len(labels), dtype=torch.float32)
+        for i, label in enumerate(labels):
+            if example[label] == 1:
+                multihot[i] = 1
+        return {
+            "labels": multihot
+        }
+
+    # batched is a bitch here, lets just do unbatched who cares
+
+    return get_multihot
+
+
+def get_labels(args) -> list[str]:
+    # load labels
+    with open(args.labels_path, "r") as f:
+        labels = json.load(f)
+
+    # sort labels
+    labels = sorted(labels["labels"])
+
+    logger.info(f"Sorted labels = {pformat(labels)}")
+
+    return labels
+
+
+def get_tokenization_fn(
+        tokenizer: PreTrainedTokenizer,
+        padding: PaddingStrategy = PaddingStrategy.LONGEST,
+        truncation: bool = True,
+        max_length: int = 64
+):
+    def tokenize(examples):
+        return tokenizer(
+            examples["message"],
+            padding=padding,
+            truncation=truncation,
+            max_length=max_length,
+            return_tensors="pt"
+        )
+
+    return tokenize

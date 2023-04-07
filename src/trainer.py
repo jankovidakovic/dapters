@@ -1,6 +1,7 @@
 import logging
 from typing import Callable, Iterable, Any
 
+import evaluate
 import numpy as np
 import torch.optim
 from torch import nn, binary_cross_entropy_with_logits
@@ -28,10 +29,10 @@ def train(
         tokenizer: PreTrainedTokenizer,
         optimizer: torch.optim.Optimizer,
         train_dataloader: DataLoader,
-        val_dataloader: DataLoader,
+        eval_dataloader: DataLoader,
         epochs: int,
         eval_steps: int,
-        loss_logging_steps: int,
+        logging_steps: int,
         loss_fn: Callable = default_loss_function,
 ):
     global_step = 0
@@ -55,19 +56,12 @@ def train(
 
             if global_step % eval_steps == 0:
                 # evaluate
-                evaluate(
+                validation(
                     model,
-                    val_dataloader,
-                    None
+                    eval_dataloader
                 )
 
-                evaluate(
-                    model,
-                    train_dataloader,  # need a factory
-                    None
-                )  # TODO - fix
-
-            if global_step % loss_logging_steps == 0:
+            if global_step % logging_steps == 0:
                 # log loss
                 progress_bar.set_description(desc=f"Loss = {loss}", refresh=True)
                 logger.info(f"Step = {global_step} : Loss = {loss}")
@@ -75,11 +69,16 @@ def train(
 
             # I mean, technically this works, right?
 
-def evaluate(
+
+def validation(
         model,
-        val_dataloader,
-        metric_producers: Iterable[Callable[[torch.Tensor, torch.Tensor], Any]]
+        eval_dataloader
 ):
-    for i, batch in tqdm(enumerate(val_dataloader), total=len(val_dataloader), desc="Validation"):
+    # we need some metrics here
+    f1_metric = evaluate.load("f1")
+    for i, batch in tqdm(enumerate(eval_dataloader), total=len(eval_dataloader), desc="Validation"):
         output = model(**batch)
-        # TODO - finish
+        # im actually not sure what goes here
+        predictions = torch.argmax(output["logits"], )
+        f1_metric.add(
+        )
