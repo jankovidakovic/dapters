@@ -1,3 +1,4 @@
+import json
 import logging
 
 import torch
@@ -30,7 +31,7 @@ def main():
         max_length=args.max_length
     )
 
-    labels = get_labels(args)
+    labels = get_labels(args.labels_path)
 
     train_dataset, eval_dataset = setup_data(args, tokenization_fn, labels)
 
@@ -60,7 +61,7 @@ def main():
         eps=args.adam_epsilon
     )
 
-    train(
+    metrics = train(
         model=model,
         tokenizer=tokenizer,
         optimizer=optimizer,
@@ -68,8 +69,12 @@ def main():
         eval_dataloader=eval_dataloader,
         epochs=args.epochs,
         eval_steps=args.eval_steps,
-        loss_logging_steps=args.logging_steps
+        logging_steps=args.logging_steps,
+        label_names=labels
     )
+
+    with open(args.metrics_path, "w") as f:
+        json.dump(metrics, f)
 
     logger.warning("Training complete.")
 

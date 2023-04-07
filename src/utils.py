@@ -109,9 +109,9 @@ def get_label_converter(labels: list[str]):
     return get_multihot
 
 
-def get_labels(args) -> list[str]:
+def get_labels(labels_path) -> list[str]:
     # load labels
-    with open(args.labels_path, "r") as f:
+    with open(labels_path, "r") as f:
         labels = json.load(f)
 
     # sort labels
