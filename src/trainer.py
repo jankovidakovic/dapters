@@ -6,7 +6,7 @@ import torch.optim
 from sklearn.metrics import multilabel_confusion_matrix
 from torch import nn
 from torch.utils.data import DataLoader
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 from transformers import PreTrainedTokenizer
 
 from torch.nn.functional import binary_cross_entropy_with_logits
@@ -37,6 +37,11 @@ def train(
     for epoch in range(1, epochs + 1):
         for i, batch in (pbar := tqdm(enumerate(train_dataloader), total=len(train_dataloader), desc=f"Epoch {epoch}")):
             # realno, za sad mi ne trebaju epohe
+            # transfer tensors to gpu
+
+            for key in batch:
+                if type(batch[key]) == torch.Tensor:
+                    batch[key] = batch[key].to("cuda")
             global_step += 1
 
             output = model(**batch)
@@ -50,14 +55,17 @@ def train(
             optimizer.zero_grad()
 
             if global_step % eval_steps == 0:
+                model.eval()
                 # evaluate
-                current_metrics = validation(
-                    model,
-                    eval_dataloader,
-                    label_names=label_names,
-                    evaluation_threshold=evaluation_threshold,
-                    loss_fn=loss_fn
-                )
+                with torch.no_grad():
+                    current_metrics = validation(
+                        model,
+                        eval_dataloader,
+                        label_names=label_names,
+                        evaluation_threshold=evaluation_threshold,
+                        loss_fn=loss_fn
+                    )
+                model.train()
 
                 logger.info(current_metrics)
                 metrics.append({
@@ -90,6 +98,9 @@ def validation(
     total_loss = 0.0
     # we need some metrics here
     for i, batch in tqdm(enumerate(eval_dataloader), total=len(eval_dataloader), desc="Validation"):
+        for key in batch:
+            if type(batch[key]) == torch.Tensor:
+                batch[key] = batch[key].to("cuda")  # bruh?
         output = model(**batch)
         predictions = torch.sigmoid(output.logits)
         predictions = predictions > evaluation_threshold
@@ -99,7 +110,7 @@ def validation(
             input=batch["labels"],
             target=output.logits,
             reduction="sum"  # not mean!
-        )
+        ).item()
 
         # would also be cool to track loss, but I guess thats kinda useless?
 

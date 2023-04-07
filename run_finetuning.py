@@ -18,7 +18,7 @@ def main():
     setup_logging(args)
 
     # lets leave it as it is for now
-    logging.info(f"Dataset path = {args.dataframe_path}")
+    logging.info(f"Dataset path = {args.train_dataset_path}")
 
     tokenizer = AutoTokenizer.from_pretrained(
         args.tokenizer_name if args.tokenizer_name else args.pretrained_model_name_or_path
@@ -48,10 +48,10 @@ def main():
         num_labels=len(labels),
         problem_type="multi-label"
     )
-    model = torch.compile(model)
+    model = torch.compile(model).to("cuda")
     # TODO - look into torch.compile options
 
-    logger.info(f"Model loaded successfully.")
+    logger.info(f"Model loaded successfully on device: {model.device}")
 
     # TODO - make configurable
     optimizer = Adam(

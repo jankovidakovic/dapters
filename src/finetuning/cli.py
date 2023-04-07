@@ -193,4 +193,10 @@ def get_parser():
         help="Experiment name in MLFLow. If not provided, will not use MLFlow."
     )
 
+    parser.add_argument(
+        "--metrics_path",
+        type=str,
+        help="Path to which the metrics will be saved."
+    )
+
     return parser
