@@ -1,4 +1,3 @@
-import json
 import logging
 from pprint import pformat
 
@@ -7,12 +6,13 @@ from datasets import Dataset
 from torch.utils.data import DataLoader
 from transformers import DefaultDataCollator
 
-from src.utils import dummy_preprocess_one, get_label_converter
+from src.finetuning.cli import FineTuningArguments
+from src.utils import dynamic_import, get_label_converter
 
 logger = logging.getLogger(__name__)
 
 
-def setup_data(args, tokenizing_fn, labels: list[str]) -> (Dataset, Dataset):
+def setup_data(args: FineTuningArguments, tokenizing_fn, labels: list[str]) -> (Dataset, Dataset):
     """ Sets up the dataset for multilabel classification.
 
     :param args:  command line args.
@@ -21,34 +21,19 @@ def setup_data(args, tokenizing_fn, labels: list[str]) -> (Dataset, Dataset):
     :return: pytorch dataset
     """
 
-    train_dataset = setup_split(tokenizing_fn, labels,
-                                args.train_dataset_path
-                                )
+    train_dataset = setup_split(tokenizing_fn, labels, args.train_dataset_path, args.preprocessing)
 
-    eval_dataset = setup_split(tokenizing_fn, labels,
-                               args.eval_dataset_path
-                               )
+    eval_dataset = setup_split(tokenizing_fn, labels, args.eval_dataset_path, args.preprocessing)
 
     return train_dataset, eval_dataset
 
 
-def setup_split(tokenizing_fn, labels,
-                dataframe_path: str
-                ) -> Dataset:
+def setup_split(tokenizing_fn, labels, dataframe_path, preprocessing_method) -> Dataset:
     df = pd.read_csv(dataframe_path)
-    do_preprocess = dummy_preprocess_one()
-    df = do_preprocess(df)
-
-    # initialize MLFlow run
-    #   -> nah fuck that, I need to finish evaluation first
-
-    # I dont want to use HF trainer because it should be slower than pure pytorch, right?
-    #   probably
-
-    # but I can also empirically measure it
-    # and also, few things are problematic:
-    #   1. early stopping
-    #   2. LR scheduling?
+    # do_preprocess = dynamic_import()
+    preprocessing = dynamic_import("src.preprocess", preprocessing_method)
+    logger.warning(f"Using preprocessing method: {preprocessing_method}")
+    df = preprocessing(df)
 
     logging.info(pformat(df.head()))
 
@@ -63,7 +48,7 @@ def setup_split(tokenizing_fn, labels,
     #   smth like "setup_context"
 
     label_converter = get_label_converter(labels)
-    dataset = dataset.map(label_converter)
+    dataset = dataset.map(label_converter)  # I didnt make this batched, fuck it
 
     dataset = dataset.with_format(
         "torch",

@@ -43,17 +43,6 @@ def sample_by(column: str, sample_size: int) -> Callable[[pd.DataFrame], pd.Data
     return apply
 
 
-def dummy_preprocess_one() -> Callable[[pd.DataFrame], pd.DataFrame]:
-    return pipeline(
-        lambda df: df.drop(
-            columns=["msg_id", "mdn", "final_pred", "source", "a2p_tags"]
-        ),
-        lambda df: df.drop_duplicates(subset="message"),
-        sample_by("cluster_id", 1),
-        lambda df: df.drop(columns=["cluster_id"]),
-    )
-
-
 def make_logfile_name(args):
     return args.log_path
 
@@ -153,3 +142,17 @@ def save_checkpoint(
 
     tokenizer.save_pretrained(output_dir)
     logger.warning(f"Saved tokenizer to {os.path.abspath(output_dir)}")
+
+
+def dynamic_import(
+        module_name: str = "data_preprocessing_pipeline",
+        function_name: str = "dummy_preprocessing_one"
+):
+    """ Loads a function from a module.
+
+    :param module_name: name of the module.
+    :param function_name: name of the function.
+    :return: function object.
+    """
+    module = __import__(module_name, fromlist=[function_name])
+    return getattr(module, function_name)

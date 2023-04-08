@@ -6,6 +6,7 @@ class DataArguments:
     train_dataset_path: str
     eval_dataset_path: str
     labels_path: str
+    preprocessing: str
 
 
 def add_data_args(parser):
@@ -22,4 +23,11 @@ def add_data_args(parser):
         "--labels_path",
         type=str,
         help="Path to a JSON file with the layout {'labels': ['LABEL_0', 'LABEL_1', ...]}"
+    )
+
+    group.add_argument(
+        "--preprocessing",
+        type=str,
+        help="Name of the preprocessing method to use. See src/preprocess for available methods."
+
     )
