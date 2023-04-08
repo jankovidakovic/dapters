@@ -73,7 +73,7 @@ def micro_f_score(conf_matrix: np.array, f_score_function = f1_score):
     return f_score_function(true_positives=true_positives, false_positives=false_positives, false_negatives=false_negatives)
 
 
-def multilabel_classification_report(conf_matrix, label_names):
+def multilabel_classification_report(conf_matrix, label_names, per_class_metrics: bool = False):
     def per_label_metrics(label_index):
         true_positives = conf_matrix[label_index, 1, 1]
         false_positives = conf_matrix[label_index, 0, 1]
@@ -94,10 +94,11 @@ def multilabel_classification_report(conf_matrix, label_names):
             "f0_5_score": f0_5_score(true_positives=true_positives, false_positives=false_positives, false_negatives=false_negatives)
         }
 
-    return {
-        "per_class_metrics": {
-            label: per_label_metrics(i) for i, label in enumerate(label_names)
-        },
+    metrics = {
+        "true_positives": np.sum(conf_matrix[:, 1, 1]),
+        "true_negatives": np.sum(conf_matrix[:, 0, 1]),
+        "false_positives": np.sum(conf_matrix[:, 0, 0]),
+        "false_negatives": np.sum(conf_matrix[:, 1, 0]),
         "macro_f1": macro_f_score(conf_matrix),
         "macro_f2": macro_f_score(conf_matrix, f_score_function=f2_score),
         "macro_f0_5": macro_f_score(conf_matrix, f_score_function=f0_5_score),
@@ -108,3 +109,10 @@ def multilabel_classification_report(conf_matrix, label_names):
         "weighted_f2": weighted_f_score(conf_matrix, f_score_function=f2_score),
         "weighted_f0_5": weighted_f_score(conf_matrix, f_score_function=f0_5_score),
     }
+
+    if per_class_metrics:
+        metrics["per_class_metrics"] = {
+            label: per_label_metrics(i) for i, label in enumerate(label_names)
+        }
+
+    return metrics

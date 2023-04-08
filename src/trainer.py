@@ -1,6 +1,7 @@
 import logging
-from typing import Callable, Any
+from typing import Callable
 
+import mlflow
 import numpy as np
 import torch.optim
 from sklearn.metrics import multilabel_confusion_matrix
@@ -33,7 +34,7 @@ def train(
         loss_fn: Callable = binary_cross_entropy_with_logits,
         evaluation_threshold: float = 0.75,
         max_grad_norm: float = 1.0
-) -> list[dict[str, Any]]:
+):
     # returns a list of classification metrics
     global_step = 0
 
@@ -71,16 +72,13 @@ def train(
                         model,
                         eval_dataloader,
                         label_names=label_names,
+                        global_step=global_step,
                         evaluation_threshold=evaluation_threshold,
                         loss_fn=loss_fn
                     )
                 model.train()
 
                 logger.info(current_metrics)  # why is this not logged then?
-                metrics.append({
-                    "global_step": global_step,
-                    "metrics": current_metrics
-                })
 
                 # TODO - early stopping
 
@@ -89,7 +87,7 @@ def train(
             if global_step % logging_steps == 0:
                 # log loss
                 pbar.set_description(desc=f"Epoch = {epoch}; Loss = {loss}", refresh=True)
-                logger.info(f"Step = {global_step} : Loss = {loss}")
+                mlflow.log_metric(key="train_loss", value=loss.item(), step=global_step)
                 #   this will fuck with tqdm tho, right?
 
             if global_step % save_steps == 0:
@@ -101,15 +99,16 @@ def train(
                 )
 
             # I mean, technically this works, right?
-    return metrics
+    # return metrics
 
 
 def validation(
         model,
         eval_dataloader,
         label_names: list[str],
+        global_step: int,
         evaluation_threshold: float = 0.75,
-        loss_fn = binary_cross_entropy_with_logits
+        loss_fn = binary_cross_entropy_with_logits,
 ):
     confusion_matrix = np.zeros((len(label_names), 2, 2))
     total_loss = 0.0
@@ -136,11 +135,17 @@ def validation(
             y_pred=predictions.detach().cpu().numpy()  # noqa
         )
 
+    mlflow.log_metric(
+        key="valid_loss",
+        value=total_loss / len(eval_dataloader.dataset),
+        step=global_step
+    )
+
     metrics = multilabel_classification_report(
         confusion_matrix,
         label_names=label_names
     )  # TODO - this isnt really working, fix
 
-    metrics["loss"] = total_loss / len(eval_dataloader.dataset)
+    mlflow.log_metrics(metrics, step=global_step)
 
     return metrics

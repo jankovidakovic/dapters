@@ -3,7 +3,7 @@ import logging
 
 import torch
 from torch.optim import AdamW
-from transformers import AutoTokenizer, BertForSequenceClassification
+from transformers import AutoTokenizer, BertForSequenceClassification, set_seed
 
 from src.data import setup_data, setup_dataloaders
 from src.finetuning import cli
@@ -11,12 +11,16 @@ from src.finetuning.cli import FineTuningArguments
 from src.trainer import train
 from src.utils import setup_logging, get_labels, get_tokenization_fn
 
+import mlflow
+
 logger = logging.getLogger(__name__)
 
 
 def main():
     args: FineTuningArguments = cli.parse_args()
     setup_logging(args)
+
+    set_seed(args.random_seed)
 
     if args.use_tf32:
         torch.backends.cuda.matmul.allow_tf32 = True  # noqa
@@ -66,7 +70,13 @@ def main():
         eps=args.adam_epsilon,
     )
 
-    metrics = train(
+    # set up mlflow
+    mlflow.set_tracking_uri("http://localhost:34567")
+    mlflow.set_experiment(args.mlflow_experiment)
+
+    mlflow.log_params(vars(args))
+
+    train(
         model=model,
         tokenizer=tokenizer,
         optimizer=optimizer,
@@ -82,10 +92,9 @@ def main():
         max_grad_norm=args.max_grad_norm
     )
 
-    with open(args.metrics_path, "w") as f:
-        json.dump(metrics, f)
-
     logger.warning("Training complete.")
+
+    mlflow.end_run()
 
 
 if __name__ == "__main__":
