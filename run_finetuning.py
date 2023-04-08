@@ -19,8 +19,8 @@ def main():
     setup_logging(args)
 
     if args.use_tf32:
-        torch.backends.cuda.matmul.allow_tf32 = True
-        torch.backends.cudnn.allow_tf32 = True
+        torch.backends.cuda.matmul.allow_tf32 = True  # noqa
+        torch.backends.cudnn.allow_tf32 = True  # noqa
         logger.warning("TF32 enabled.")
 
     tokenizer = AutoTokenizer.from_pretrained(
@@ -31,7 +31,7 @@ def main():
 
     tokenization_fn = get_tokenization_fn(
         tokenizer=tokenizer,
-        padding=args.padding,
+        padding=args.padding,  # noqa
         truncation=True,
         max_length=args.max_length
     )
@@ -53,7 +53,7 @@ def main():
         num_labels=len(labels),
         problem_type=args.problem_type
     )
-    model = torch.compile(model).to(args.device)
+    model = torch.compile(model).to(args.device)  # noqa
     # TODO - look into torch.compile options
 
     logger.info(f"Model loaded successfully on device: {model.device}")
