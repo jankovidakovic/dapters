@@ -26,7 +26,7 @@ def main():
     logging.info(f"Dataset path = {args.train_dataset_path}")
 
     tokenizer = AutoTokenizer.from_pretrained(
-        args.tokenizer_name if args.tokenizer_name else args.pretrained_model_name_or_path
+        args.pretrained_model_name_or_path
     )
 
     tokenization_fn = get_tokenization_fn(

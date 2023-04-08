@@ -1,6 +1,7 @@
 import argparse
 
-from src.cli.model import add_model_arguments
+from src.cli.model import add_model_args
+from src.cli.tokenizer import add_tokenizer_args
 
 
 def get_parser():
@@ -18,21 +19,6 @@ def get_parser():
         "--log_path",
         type=str,
         help="Filesystem path to a log file in which logs will be written.",
-    )
-
-    parser.add_argument(
-        "--padding",
-        type=str,
-        choices=["longest", "max_length", "do_not_pad"],
-        default="max_length",
-        help="Padding strategy when tokenizing. Defaults to 'max_length'."
-    )
-
-    parser.add_argument(
-        "--max_length",
-        type=int,
-        default=64,
-        help="Model max length. Defaults to 64."
     )
 
     parser.add_argument(
@@ -74,21 +60,6 @@ def get_parser():
         type=int,
         default=100,
         help="Number of steps to perform between each loss logging."
-    )
-
-    parser.add_argument(
-        "--config_name",
-        type=str,
-        default=None,
-        help="Pretrained config name or path. If not provided, will default to "
-             "value of '--pretrained_model_name_or_path'.",
-    )
-    parser.add_argument(
-        "--tokenizer_name",
-        default=None,
-        type=str,
-        help="Pretrained tokenizer name or path. If not provided, will default to "
-             "value of '--pretrained_model_name_or_path'.",
     )
 
     parser.add_argument(
@@ -189,6 +160,7 @@ def get_parser():
         help="If set, will use TF32 precision to compute matrix multiplications and convolutions."
     )
 
-    add_model_arguments(parser)
+    add_model_args(parser)
+    add_tokenizer_args(parser)
 
     return parser

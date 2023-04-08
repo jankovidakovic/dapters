@@ -9,7 +9,7 @@ class ModelArguments:
     problem_type: str
 
 
-def add_model_arguments(parser: ArgumentParser):
+def add_model_args(parser: ArgumentParser):
 
     group = parser.add_argument_group(
         "Model arguments",
