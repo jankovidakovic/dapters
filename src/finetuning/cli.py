@@ -1,5 +1,7 @@
 import argparse
 
+from src.cli.model import add_model_arguments
+
 
 def get_parser():
     parser = argparse.ArgumentParser("Fine-tuning arguments parser")
@@ -16,13 +18,6 @@ def get_parser():
         "--log_path",
         type=str,
         help="Filesystem path to a log file in which logs will be written.",
-    )
-
-    parser.add_argument(
-        "--pretrained_model_name_or_path",
-        type=str,
-        help="Fully qualified model name, either on Huggingface Model Hub or "
-             "a local filesystem path."
     )
 
     parser.add_argument(
@@ -79,17 +74,6 @@ def get_parser():
         type=int,
         default=100,
         help="Number of steps to perform between each loss logging."
-    )
-
-    parser.add_argument(
-        "--num_labels",
-        type=int,
-        default=None,
-        required=True,
-        help="Number of unique labels in dataset. If not provided, will "
-             "be calculated as the number of unique values in labels column "
-             "in the training dataset. Name of the column containig labels can "
-             "be set using the '--label_column' option.",
     )
 
     parser.add_argument(
@@ -204,5 +188,7 @@ def get_parser():
         action="store_true",
         help="If set, will use TF32 precision to compute matrix multiplications and convolutions."
     )
+
+    add_model_arguments(parser)
 
     return parser
