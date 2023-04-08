@@ -5,9 +5,9 @@ from dataclasses import dataclass, field
 
 @dataclass
 class OptimizerArguments:
-    learning_rate: float = field(default=2e-5)
-    adam_epsilon: float = field(default=1e-8)
-    weight_decay: float = field(default=0.0)
+    learning_rate: float
+    adam_epsilon: float
+    weight_decay: float
 
 
 def add_optimizer_args(parser: ArgumentParser):

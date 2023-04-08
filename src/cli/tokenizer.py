@@ -1,7 +1,9 @@
 from argparse import ArgumentParser
+from dataclasses import dataclass
 
 
-class TokenizerArgs:
+@dataclass
+class TokenizerArguments:
     pretrained_model_name_or_path: str
     padding: str
     truncation: bool

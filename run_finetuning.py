@@ -7,6 +7,7 @@ from transformers import AutoTokenizer, BertForSequenceClassification
 
 from src.data import setup_data, setup_dataloaders
 from src.finetuning import cli
+from src.finetuning.cli import FineTuningArguments
 from src.trainer import train
 from src.utils import setup_logging, get_labels, get_tokenization_fn
 
@@ -14,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    args = cli.get_parser().parse_args()  # okay, legit
+    args: FineTuningArguments = cli.parse_args()
     setup_logging(args)
 
     if args.use_tf32:
@@ -78,6 +79,7 @@ def main():
         output_dir=args.output_dir,
         label_names=labels,
         evaluation_threshold=args.evaluation_threshold,
+        max_grad_norm=args.max_grad_norm
     )
 
     with open(args.metrics_path, "w") as f:

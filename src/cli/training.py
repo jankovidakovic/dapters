@@ -4,18 +4,18 @@ from dataclasses import dataclass
 
 @dataclass
 class TrainingArguments:
-    per_device_train_batch_size: int = 4
-    per_device_eval_batch_size: int = 2
-    max_grad_norm: float = 1.0
-    dataloader_num_workers: int = 4
-    epochs: int = 1
-    eval_steps: int = 500
-    logging_steps: int = 100
-    save_steps: int = 500
-    output_dir: str = "./output/test"
-    evaluation_threshold: float = 0.75
-    device: str = "cuda"
-    use_tf32: bool = True
+    per_device_train_batch_size: int
+    per_device_eval_batch_size: int
+    max_grad_norm: float
+    dataloader_num_workers: int
+    epochs: int
+    eval_steps: int
+    logging_steps: int
+    save_steps: int
+    output_dir: str
+    evaluation_threshold: float
+    device: str
+    use_tf32: bool
 
 
 def add_training_args(parser: ArgumentParser):

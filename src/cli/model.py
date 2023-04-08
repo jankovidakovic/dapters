@@ -1,11 +1,10 @@
 from argparse import ArgumentParser
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
 class ModelArguments:
     pretrained_model_name_or_path: str
-    num_labels: int
     problem_type: str
 
 
@@ -27,5 +26,6 @@ def add_model_args(parser: ArgumentParser):
         "--problem_type",
         type=str,
         choices=["multi-label"],  # TODO - add masked language modelling
+        default="multi-label",
         help="Problem type."
     )

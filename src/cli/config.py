@@ -4,13 +4,14 @@ from dataclasses import dataclass
 
 @dataclass
 class ConfigurationArguments:
-    device: str = "cuda"
-    use_tf32: bool = True
-    random_seed: int = 192837465
-    mlflow_experiment: str = None
-    log_path: str = "./run.log"
-    metrics_path: str = "./metrics.json"
-    output_dir: str = "./output/test"
+    device: str
+    use_tf32: bool
+    random_seed: int
+    mlflow_experiment: str
+    log_path: str
+    metrics_path: str
+    output_dir: str
+
 
 
 def add_configuration_args(parser: ArgumentParser):
