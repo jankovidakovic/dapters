@@ -23,16 +23,6 @@ def add_model_args(parser: ArgumentParser):
              "a local filesystem path."
     )
 
-    group.add_argument(
-        "--num_labels",
-        type=int,
-        default=None,
-        required=True,
-        help="Number of unique labels in dataset. If not provided, will "
-             "be calculated as the number of unique values in labels column "
-             "in the training dataset. Name of the column containig labels can "
-             "be set using the '--label_column' option.",
-    )
 
     group.add_argument(
         "--problem_type",

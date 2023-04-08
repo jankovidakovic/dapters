@@ -1,5 +1,6 @@
 import argparse
 
+from src.cli.data import add_data_args
 from src.cli.model import add_model_args
 from src.cli.optimizer import add_optimizer_args
 from src.cli.tokenizer import add_tokenizer_args
@@ -9,23 +10,9 @@ def get_parser():
     parser = argparse.ArgumentParser("Fine-tuning arguments parser")
 
     parser.add_argument(
-        "--train_dataset_path", type=str, help="Filesystem path to a training dataset."
-    )
-
-    parser.add_argument(
-        "--eval_dataset_path", type=str, help="Filesystem path to the evaluation dataset."
-    )  # this is actually the "early stopping" split.
-
-    parser.add_argument(
         "--log_path",
         type=str,
         help="Filesystem path to a log file in which logs will be written.",
-    )
-
-    parser.add_argument(
-        "--labels_path",
-        type=str,
-        help="Path to a JSON file with the layout {'labels': ['LABEL_0', 'LABEL_1', ...]}"
     )
 
     parser.add_argument(
@@ -145,5 +132,6 @@ def get_parser():
     add_model_args(parser)
     add_tokenizer_args(parser)
     add_optimizer_args(parser)
+    add_data_args(parser)
 
     return parser
