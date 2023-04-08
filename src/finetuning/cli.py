@@ -1,6 +1,7 @@
 import argparse
 
 from src.cli.model import add_model_args
+from src.cli.optimizer import add_optimizer_args
 from src.cli.tokenizer import add_tokenizer_args
 
 
@@ -76,25 +77,6 @@ def get_parser():
         help="Batch size used during evaluation (per device). Defaults to 2.",
     )
     parser.add_argument(
-        "--learning_rate",
-        default=1e-5,
-        type=float,
-        help="The initial learning rate used for optimization. Defaults to 1e-5.",
-    )
-    parser.add_argument(
-        "--weight_decay",
-        default=0.0,
-        type=float,
-        help="Weight decay factor. Defaults to 0 (no weight decay)."
-    )
-    parser.add_argument(
-        "--adam_epsilon",
-        default=1e-8,
-        type=float,
-        help="Stability factor used in ADAM Optimizer, used to mitigate zero-division errors. "
-             "Defaults to 1e-8."
-    )
-    parser.add_argument(
         "--max_grad_norm",
         default=None,
         type=float,
@@ -162,5 +144,6 @@ def get_parser():
 
     add_model_args(parser)
     add_tokenizer_args(parser)
+    add_optimizer_args(parser)
 
     return parser

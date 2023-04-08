@@ -2,7 +2,7 @@ import json
 import logging
 
 import torch
-from torch.optim import Adam
+from torch.optim import AdamW
 from transformers import AutoTokenizer, BertForSequenceClassification
 
 from src.data import setup_data, setup_dataloaders
@@ -59,11 +59,11 @@ def main():
     logger.info(f"Model loaded successfully on device: {model.device}")
 
     # TODO - make configurable
-    optimizer = Adam(
+    optimizer = AdamW(
         model.parameters(),
         lr=args.learning_rate,
         weight_decay=args.weight_decay,
-        eps=args.adam_epsilon
+        eps=args.adam_epsilon,
     )
 
     metrics = train(
