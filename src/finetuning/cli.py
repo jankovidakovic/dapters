@@ -12,13 +12,6 @@ def get_parser():
     parser = argparse.ArgumentParser("Fine-tuning arguments parser")
 
     parser.add_argument(
-        "--do_lower_case",
-        action="store_true",
-        help="If set, input text will be lowercased during tokenization. "
-             "This flag is useful when one is using uncased models (e.g. 'bert-base-uncased')",
-    )
-
-    parser.add_argument(
         "--save_total_limit",
         type=int,
         required=False,

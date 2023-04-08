@@ -6,6 +6,7 @@ class TokenizerArgs:
     padding: str
     truncation: bool
     max_length: int
+    do_lower_case: bool
 
 
 def add_tokenizer_args(parser: ArgumentParser):
@@ -35,3 +36,11 @@ def add_tokenizer_args(parser: ArgumentParser):
         default=True,
         help="If set, will truncate sequences for which length exceeds --max_length."
     )
+
+    group.add_argument(
+        "--do_lower_case",
+        action="store_true",
+        help="If set, input text will be lowercased during tokenization. "
+                "This flag is useful when one is using uncased models (e.g. 'bert-base-uncased')",
+    )
+

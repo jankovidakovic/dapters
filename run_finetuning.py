@@ -23,7 +23,9 @@ def main():
         logger.warning("TF32 enabled.")
 
     tokenizer = AutoTokenizer.from_pretrained(
-        args.pretrained_model_name_or_path
+        args.pretrained_model_name_or_path,
+        model_max_length=args.max_length,
+        do_lower_case=args.do_lower_case
     )
 
     tokenization_fn = get_tokenization_fn(
