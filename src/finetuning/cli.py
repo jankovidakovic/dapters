@@ -152,7 +152,7 @@ def get_parser():
         type=int,
         default=None,
         help="Saving interval in steps. Defaults to None.",
-    )  # TODO!!!!!!!!!1
+    )
     parser.add_argument(
         "--save_total_limit",
         type=int,
@@ -176,7 +176,7 @@ def get_parser():
         required=False,
         help="The output directory where the model predictions and "
              "checkpoints will be written."
-    )  # TODO
+    )
 
     # misc
     parser.add_argument(  # TODO - make use of this

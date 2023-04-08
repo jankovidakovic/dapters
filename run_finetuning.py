@@ -70,6 +70,8 @@ def main():
         epochs=args.epochs,
         eval_steps=args.eval_steps,
         logging_steps=args.logging_steps,
+        save_steps=args.save_steps,
+        output_dir=args.output_dir,
         label_names=labels
     )
 

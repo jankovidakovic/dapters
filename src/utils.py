@@ -6,7 +6,7 @@ import logging
 import os
 
 import torch
-from transformers import PreTrainedTokenizer
+from transformers import PreTrainedTokenizer, PreTrainedModel
 from transformers.utils import PaddingStrategy
 
 logger = logging.getLogger(__name__)
@@ -138,3 +138,18 @@ def get_tokenization_fn(
         )
 
     return tokenize
+
+
+def save_checkpoint(
+        model: PreTrainedModel,
+        output_dir: str,
+        global_step: int,
+        tokenizer: PreTrainedTokenizer,
+):
+    output_dir = os.path.join(output_dir, f"checkpoint-{global_step}")  # moze
+    os.makedirs(output_dir, exist_ok=True)
+    model.save_pretrained(output_dir)
+    logger.info(f"Saved model checkpoint to {os.path.abspath(output_dir)}")
+
+    tokenizer.save_pretrained(output_dir)
+    logger.warning(f"Saved tokenizer to {os.path.abspath(output_dir)}")
