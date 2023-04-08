@@ -2,7 +2,7 @@ import logging
 from pprint import pformat
 
 import pandas as pd
-from datasets import Dataset
+from datasets import Dataset, Sequence
 from torch.utils.data import DataLoader
 from transformers import DefaultDataCollator
 
@@ -50,9 +50,17 @@ def setup_split(tokenizing_fn, labels, dataframe_path, preprocessing_method) -> 
     label_converter = get_label_converter(labels)
     dataset = dataset.map(label_converter)  # I didnt make this batched, fuck it
 
+    # keep only columns which are sequences, discard other columns
+    # this way, keeping columns is model-independent (e.g. some models dont have "token_type_ids")
+    columns_to_keep = list(map(
+        lambda entry: entry[0],  # feature key (name)
+        filter(
+            lambda entry: type(entry[1]) == Sequence,  # value is a Sequence
+            dataset.features.items())))
+
     dataset = dataset.with_format(
         "torch",
-        columns=["input_ids", "attention_mask", "token_type_ids", "labels"]
+        columns=columns_to_keep
         # TODO - columns are model-dependent
     )
 

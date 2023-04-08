@@ -1,9 +1,8 @@
-import json
 import logging
 
 import torch
 from torch.optim import AdamW
-from transformers import AutoTokenizer, BertForSequenceClassification, set_seed
+from transformers import AutoTokenizer, set_seed, AutoModelForSequenceClassification, BertConfig, PreTrainedTokenizer
 
 from src.data import setup_data, setup_dataloaders
 from src.finetuning import cli
@@ -27,7 +26,7 @@ def main():
         torch.backends.cudnn.allow_tf32 = True  # noqa
         logger.warning("TF32 enabled.")
 
-    tokenizer = AutoTokenizer.from_pretrained(
+    tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
         args.pretrained_model_name_or_path,
         model_max_length=args.max_length,
         do_lower_case=args.do_lower_case
@@ -52,7 +51,7 @@ def main():
     )
 
     # initialize model
-    model = BertForSequenceClassification.from_pretrained(
+    model = AutoModelForSequenceClassification.from_pretrained(
         args.pretrained_model_name_or_path,
         num_labels=len(labels),
         problem_type=args.problem_type
