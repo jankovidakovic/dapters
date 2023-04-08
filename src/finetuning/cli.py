@@ -199,4 +199,10 @@ def get_parser():
         help="Path to which the metrics will be saved."
     )
 
+    parser.add_argument(
+        "--use_tf32",
+        action="store_true",
+        help="If set, will use TF32 precision to compute matrix multiplications and convolutions."
+    )
+
     return parser

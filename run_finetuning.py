@@ -17,6 +17,11 @@ def main():
     args = cli.get_parser().parse_args()  # okay, legit
     setup_logging(args)
 
+    if args.use_tf32:
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+        logger.warning("TF32 enabled.")
+
     # lets leave it as it is for now
     logging.info(f"Dataset path = {args.train_dataset_path}")
 
