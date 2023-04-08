@@ -5,6 +5,7 @@ import numpy as np
 import torch.optim
 from sklearn.metrics import multilabel_confusion_matrix
 from torch import nn
+from torch.nn.utils import clip_grad_norm_
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import PreTrainedTokenizer
@@ -31,6 +32,7 @@ def train(
         label_names: list[str],
         loss_fn: Callable = binary_cross_entropy_with_logits,
         evaluation_threshold: float = 0.75,
+        max_grad_norm: float = 1.0
 ) -> list[dict[str, Any]]:
     # returns a list of classification metrics
     global_step = 0
@@ -47,7 +49,7 @@ def train(
 
             for key in batch:
                 if type(batch[key]) == torch.Tensor:
-                    batch[key] = batch[key].to("cuda")
+                    batch[key] = batch[key].to(model.device)
             global_step += 1
 
             output = model(**batch)
@@ -57,6 +59,7 @@ def train(
                 reduction="mean"
             )
             loss.backward()
+            clip_grad_norm_(model.parameters(), max_grad_norm)
             optimizer.step()
             optimizer.zero_grad()
 
@@ -114,7 +117,7 @@ def validation(
     for i, batch in tqdm(enumerate(eval_dataloader), total=len(eval_dataloader), desc="Validation"):
         for key in batch:
             if type(batch[key]) == torch.Tensor:
-                batch[key] = batch[key].to("cuda")  # bruh?
+                batch[key] = batch[key].to(model.device)  # bruh?
         output = model(**batch)
         predictions = torch.sigmoid(output.logits)
         predictions = predictions > evaluation_threshold

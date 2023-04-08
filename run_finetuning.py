@@ -22,9 +22,6 @@ def main():
         torch.backends.cudnn.allow_tf32 = True
         logger.warning("TF32 enabled.")
 
-    # lets leave it as it is for now
-    logging.info(f"Dataset path = {args.train_dataset_path}")
-
     tokenizer = AutoTokenizer.from_pretrained(
         args.pretrained_model_name_or_path
     )
@@ -51,9 +48,9 @@ def main():
     model = BertForSequenceClassification.from_pretrained(
         args.pretrained_model_name_or_path,
         num_labels=len(labels),
-        problem_type="multi-label"
+        problem_type=args.problem_type
     )
-    model = torch.compile(model).to("cuda")
+    model = torch.compile(model).to(args.device)
     # TODO - look into torch.compile options
 
     logger.info(f"Model loaded successfully on device: {model.device}")
@@ -77,7 +74,8 @@ def main():
         logging_steps=args.logging_steps,
         save_steps=args.save_steps,
         output_dir=args.output_dir,
-        label_names=labels
+        label_names=labels,
+        evaluation_threshold=args.evaluation_threshold,
     )
 
     with open(args.metrics_path, "w") as f:

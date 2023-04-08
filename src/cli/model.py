@@ -23,7 +23,6 @@ def add_model_args(parser: ArgumentParser):
              "a local filesystem path."
     )
 
-
     group.add_argument(
         "--problem_type",
         type=str,
