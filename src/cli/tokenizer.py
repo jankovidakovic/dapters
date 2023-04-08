@@ -9,6 +9,7 @@ class TokenizerArguments:
     truncation: bool
     max_length: int
     do_lower_case: bool
+    cache_dir: str
 
 
 def add_tokenizer_args(parser: ArgumentParser):
@@ -44,5 +45,11 @@ def add_tokenizer_args(parser: ArgumentParser):
         action="store_true",
         help="If set, input text will be lowercased during tokenization. "
                 "This flag is useful when one is using uncased models (e.g. 'bert-base-uncased')",
+    )
+
+    group.add_argument(
+        "--cache_dir",
+        type=str,
+        help="Huggingface cache directory."
     )
 

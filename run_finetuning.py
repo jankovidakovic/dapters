@@ -29,7 +29,8 @@ def main():
     tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
         args.pretrained_model_name_or_path,
         model_max_length=args.max_length,
-        do_lower_case=args.do_lower_case
+        do_lower_case=args.do_lower_case,
+        cache_dir=args.cache_dir
     )
 
     tokenization_fn = get_tokenization_fn(
@@ -54,7 +55,8 @@ def main():
     model = AutoModelForSequenceClassification.from_pretrained(
         args.pretrained_model_name_or_path,
         num_labels=len(labels),
-        problem_type=args.problem_type
+        problem_type=args.problem_type,
+        cache_dir=args.cache_dir
     )
     model = torch.compile(model).to(args.device)  # noqa
     # TODO - look into torch.compile options

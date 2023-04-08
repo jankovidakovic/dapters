@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 class ModelArguments:
     pretrained_model_name_or_path: str
     problem_type: str
+    cache_dir: str
 
 
 def add_model_args(parser: ArgumentParser):
@@ -29,3 +30,4 @@ def add_model_args(parser: ArgumentParser):
         default="multi-label",
         help="Problem type."
     )
+
