@@ -7,8 +7,13 @@ import logging
 import os
 
 import torch
-from transformers import PreTrainedTokenizer, PreTrainedModel
+from torch import nn
+from torch.optim import AdamW, Optimizer
+from torch.optim.lr_scheduler import LRScheduler
+from transformers import PreTrainedTokenizer, PreTrainedModel, get_scheduler
 from transformers.utils import PaddingStrategy
+
+from src.finetuning.cli import FineTuningArguments
 
 logger = logging.getLogger(__name__)
 
@@ -166,3 +171,40 @@ def is_improved(
 ):
     compare = operator.gt if greater_is_better else operator.lt
     return compare(current_value, best_value)
+
+
+def setup_optimizers(
+        model: nn.Module,
+        lr: float,
+        weight_decay: float,
+        adam_epsilon: float,
+        epochs: int,
+        gradient_accumulation_steps: int,
+        warmup_percentage: float,
+        epoch_steps: int,
+        scheduler_type: str
+) -> (Optimizer, LRScheduler):
+    optimizer = AdamW(
+        model.parameters(),
+        lr=lr,
+        weight_decay=weight_decay,
+        eps=adam_epsilon,
+        capturable=True,  # make optimizer capturable in a CUDA graph
+        fused=True  # fuse operations into a single CUDA kernel (TODO - might break on TF32)
+    )
+
+    # calculate the warmup steps
+    num_training_steps = epochs * (epoch_steps // gradient_accumulation_steps)
+    logger.warning(f"Total steps = {num_training_steps}")
+    num_warmup_steps = round(warmup_percentage * num_training_steps)
+    logger.warning(f"Warmup percentage was set to {warmup_percentage}. "
+                   f"Based on that, warmup will be performed over {num_warmup_steps} warmup steps.")
+
+    scheduler = get_scheduler(
+        name=scheduler_type,
+        optimizer=optimizer,
+        num_warmup_steps=num_warmup_steps,
+        num_training_steps=num_training_steps
+    )
+
+    return optimizer, scheduler

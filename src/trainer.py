@@ -8,6 +8,7 @@ import torch.optim
 from sklearn.metrics import precision_recall_fscore_support
 from torch import nn
 from torch.nn.utils import clip_grad_norm_
+from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from transformers import PreTrainedTokenizer
@@ -23,6 +24,7 @@ def train(
         model: nn.Module,
         tokenizer: PreTrainedTokenizer,
         optimizer: torch.optim.Optimizer,
+        scheduler: LRScheduler,
         train_dataloader: DataLoader,
         eval_dataloader: DataLoader,
         epochs: int,
@@ -78,7 +80,11 @@ def train(
             ):
                 clip_grad_norm_(model.parameters(), max_grad_norm)
                 optimizer.step()
+                scheduler.step()  # updates the learning rate
                 optimizer.zero_grad()
+                pbar.set_description(
+                    f"Epoch = {epoch} (LR = {scheduler.get_last_lr()[-1]:.8f}; loss = {loss.item():.4f})"
+                )
 
             if global_step % eval_steps == 0:
                 # evaluate
@@ -96,9 +102,6 @@ def train(
                     metrics=metrics,
                     step=global_step
                 )
-
-                # TODO - early stopping
-                # now we implement early stopping
 
                 # step 1 -> extract metric
                 current_metric_value = metrics[metric_for_best_model]
@@ -123,9 +126,8 @@ def train(
 
             if global_step % logging_steps == 0:
                 # log loss
-                pbar.set_description(desc=f"Epoch = {epoch}; Loss = {loss}", refresh=True)
                 mlflow.log_metric(key="train_loss", value=loss.item(), step=global_step)
-                #   this will fuck with tqdm tho, right?
+                # TODO - log average loss instead of current loss
 
             if global_step % save_steps == 0:
                 save_checkpoint(

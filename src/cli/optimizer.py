@@ -2,12 +2,19 @@
 from argparse import ArgumentParser
 from dataclasses import dataclass, field
 
+from transformers import SchedulerType
+
 
 @dataclass
 class OptimizerArguments:
     learning_rate: float
     adam_epsilon: float
     weight_decay: float
+    scheduler_type: str | SchedulerType
+    warmup_percentage: float
+
+    def __post_init__(self):
+        self.scheduler_type = SchedulerType(self.scheduler_type)
 
 
 def add_optimizer_args(parser: ArgumentParser):
@@ -36,4 +43,18 @@ def add_optimizer_args(parser: ArgumentParser):
         default=0.0,
         type=float,
         help="Weight decay factor. Defaults to 0 (no weight decay)."
+    )
+    optimizer_group.add_argument(
+        "--scheduler_type",
+        default="constant",
+        choices=["linear", "constant", "cosine", "polynomial", "constant_with_warmup"],
+        type=str,
+        help="The type of scheduler to use. Defaults to constant.",
+    )
+
+    optimizer_group.add_argument(
+        "--warmup_percentage",
+        type=float,
+        default=0,
+        help="Percentage of training for which the linear warmup will be used. Defaults to 0, which means no warmup."
     )

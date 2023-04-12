@@ -2,20 +2,18 @@ import logging
 
 
 import torch
-from torch.optim import AdamW
 from transformers import (
     AutoTokenizer,
     set_seed,
     AutoModelForSequenceClassification,
-    BertConfig,
-    PreTrainedTokenizer,
+    PreTrainedTokenizer
 )
 
 from src.data import setup_data, setup_dataloaders
 from src.finetuning import cli
 from src.finetuning.cli import FineTuningArguments
 from src.trainer import train
-from src.utils import setup_logging, get_labels, get_tokenization_fn
+from src.utils import setup_logging, get_labels, get_tokenization_fn, setup_optimizers
 
 import mlflow
 
@@ -69,12 +67,17 @@ def main():
     logger.info(f"Model loaded successfully on device: {model.device}")
 
     # TODO - make configurable
-    optimizer = AdamW(
-        model.parameters(),
+    optimizer, scheduler = setup_optimizers(
+        model,
         lr=args.learning_rate,
         weight_decay=args.weight_decay,
-        eps=args.adam_epsilon,
-    )
+        adam_epsilon=args.adam_epsilon,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        warmup_percentage=args.warmup_percentage,
+        epochs=args.epochs,
+        epoch_steps=len(train_dataloader),
+        scheduler_type=args.scheduler_type
+    )   # TODO - dataloader was an IterableDataset, we wouldnt have len -> fix
 
     # set up mlflow
     mlflow.set_tracking_uri("http://localhost:34567")
@@ -86,6 +89,7 @@ def main():
         model=model,
         tokenizer=tokenizer,
         optimizer=optimizer,
+        scheduler=scheduler,
         train_dataloader=train_dataloader,
         eval_dataloader=eval_dataloader,
         epochs=args.epochs,
