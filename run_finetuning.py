@@ -1,8 +1,15 @@
 import logging
 
+
 import torch
 from torch.optim import AdamW
-from transformers import AutoTokenizer, set_seed, AutoModelForSequenceClassification, BertConfig, PreTrainedTokenizer
+from transformers import (
+    AutoTokenizer,
+    set_seed,
+    AutoModelForSequenceClassification,
+    BertConfig,
+    PreTrainedTokenizer,
+)
 
 from src.data import setup_data, setup_dataloaders
 from src.finetuning import cli
@@ -30,14 +37,14 @@ def main():
         args.pretrained_model_name_or_path,
         model_max_length=args.max_length,
         do_lower_case=args.do_lower_case,
-        cache_dir=args.cache_dir
+        cache_dir=args.cache_dir,
     )
 
     tokenization_fn = get_tokenization_fn(
         tokenizer=tokenizer,
         padding=args.padding,  # noqa
         truncation=True,
-        max_length=args.max_length
+        max_length=args.max_length,
     )
 
     labels = get_labels(args.labels_path)
@@ -46,9 +53,7 @@ def main():
 
     # TODO - IterableDataset = ?
     train_dataloader, eval_dataloader = setup_dataloaders(
-        train_dataset,
-        eval_dataset,
-        args
+        train_dataset, eval_dataset, args
     )
 
     # initialize model
@@ -56,7 +61,7 @@ def main():
         args.pretrained_model_name_or_path,
         num_labels=len(labels),
         problem_type=args.problem_type,
-        cache_dir=args.cache_dir
+        cache_dir=args.cache_dir,
     )
     model = torch.compile(model).to(args.device)  # noqa
     # TODO - look into torch.compile options
@@ -90,7 +95,10 @@ def main():
         output_dir=args.output_dir,
         label_names=labels,
         evaluation_threshold=args.evaluation_threshold,
-        max_grad_norm=args.max_grad_norm
+        max_grad_norm=args.max_grad_norm,
+        early_stopping_patience=args.early_stopping_patience,
+        metric_for_best_model=args.metric_for_best_model,
+        greater_is_better=args.greater_is_better,
     )
 
     logger.warning("Training complete.")

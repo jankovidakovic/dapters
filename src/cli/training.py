@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -16,6 +17,10 @@ class TrainingArguments:
     evaluation_threshold: float
     device: str
     use_tf32: bool
+    early_stopping_patience: Optional[int]
+    metric_for_best_model: Optional[str]
+    greater_is_better: bool
+
 
 
 def add_training_args(parser: ArgumentParser):
@@ -83,4 +88,25 @@ def add_training_args(parser: ArgumentParser):
         type=float,
         default=0.75,
         help="Threshold for classification evaluation. Defaults to 0.75."
+    )
+
+    group.add_argument(
+        "--early_stopping_patience",
+        type=int,
+        default=None,
+        help="Number of steps to wait before early stopping. Defaults to None."
+    )
+
+    group.add_argument(
+        "--metric_for_best_model",
+        type=str,
+        default=None,
+        help="Metric to use for early stopping. Defaults to None."
+    )
+
+    group.add_argument(
+        "--greater_is_better",
+        action="store_true",
+        default=False,
+        help="Whether the metric for best model is considered better when greater or lower. Defaults to True."
     )

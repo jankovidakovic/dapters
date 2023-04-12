@@ -1,4 +1,5 @@
 import json
+import operator
 from pprint import pformat
 from typing import Callable
 import pandas as pd
@@ -156,3 +157,12 @@ def dynamic_import(
     """
     module = __import__(module_name, fromlist=[function_name])
     return getattr(module, function_name)
+
+
+def is_improved(
+        current_value: float,
+        best_value: float,
+        greater_is_better: bool
+):
+    compare = operator.gt if greater_is_better else operator.lt
+    return compare(current_value, best_value)
