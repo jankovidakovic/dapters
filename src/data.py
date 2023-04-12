@@ -28,7 +28,7 @@ def setup_data(args: FineTuningArguments, tokenizing_fn, labels: list[str]) -> (
     return train_dataset, eval_dataset
 
 
-def setup_split(tokenizing_fn, labels, dataframe_path, preprocessing_method) -> Dataset:
+def setup_split(tokenizing_fn, labels, dataframe_path, preprocessing_method: str) -> Dataset:
     df = pd.read_csv(dataframe_path)
     # do_preprocess = dynamic_import()
     preprocessing = dynamic_import("src.preprocess", preprocessing_method)
