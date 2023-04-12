@@ -20,6 +20,7 @@ class TrainingArguments:
     early_stopping_patience: Optional[int]
     metric_for_best_model: Optional[str]
     greater_is_better: bool
+    gradient_accumulation_steps: int
 
 
 
@@ -109,4 +110,11 @@ def add_training_args(parser: ArgumentParser):
         action="store_true",
         default=False,
         help="Whether the metric for best model is considered better when greater or lower. Defaults to True."
+    )
+
+    group.add_argument(
+        "--gradient_accumulation_steps",
+        type=int,
+        default=1,
+        help="Number of gradient accumulation steps. Defaults to 1."
     )

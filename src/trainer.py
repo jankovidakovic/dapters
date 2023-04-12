@@ -36,7 +36,8 @@ def train(
         max_grad_norm: float = 1.0,
         early_stopping_patience: Optional[int] = None,
         metric_for_best_model: str = "macro-f1",
-        greater_is_better: bool = True
+        greater_is_better: bool = True,
+        gradient_accumulation_steps: int = 1
 ):
     global_step = 0
     early_stopping_step: Optional[int]
@@ -52,12 +53,12 @@ def train(
         early_stopping_step = 0
 
     for epoch in range(1, epochs + 1):
+        epoch_step = 0
         for i, batch in (pbar := tqdm(
                 enumerate(train_dataloader),
                 total=len(train_dataloader),
                 desc=f"Epoch {epoch}")):
-            # realno, za sad mi ne trebaju epohe
-            # transfer tensors to gpu
+            epoch_step += 1
 
             for key in batch:
                 if type(batch[key]) == torch.Tensor:
@@ -71,11 +72,13 @@ def train(
                 reduction="mean"
             )
             loss.backward()
-            clip_grad_norm_(model.parameters(), max_grad_norm)
-            optimizer.step()
-            optimizer.zero_grad()
 
-            # TODO - gradient accumulation
+            if (epoch_step % gradient_accumulation_steps == 0
+                or epoch_step == len(train_dataloader)
+            ):
+                clip_grad_norm_(model.parameters(), max_grad_norm)
+                optimizer.step()
+                optimizer.zero_grad()
 
             if global_step % eval_steps == 0:
                 # evaluate
@@ -173,7 +176,7 @@ def validation(
         ).item()
     }
 
-    predictions_all = torch.tensor(torch.sigmoid(logits_all) > evaluation_threshold).int()
+    predictions_all = (torch.sigmoid(logits_all) > evaluation_threshold).int()  # noqa
 
     averages = ["macro", "micro", "weighted"]
 

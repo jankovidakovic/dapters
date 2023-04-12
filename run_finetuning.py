@@ -99,6 +99,7 @@ def main():
         early_stopping_patience=args.early_stopping_patience,
         metric_for_best_model=args.metric_for_best_model,
         greater_is_better=args.greater_is_better,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
     )
 
     logger.warning("Training complete.")
