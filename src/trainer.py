@@ -11,13 +11,55 @@ from torch.nn.utils import clip_grad_norm_
 from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformers import PreTrainedTokenizer
+from transformers import PreTrainedTokenizer, BatchEncoding
 
 from torch.nn.functional import binary_cross_entropy_with_logits
+from transformers.modeling_outputs import SequenceClassifierOutput, MaskedLMOutput
+from transformers.utils import ModelOutput
 
-from src.utils import save_checkpoint, is_improved
+from src.utils import save_checkpoint, is_improved, set_device
 
 logger = logging.getLogger(__name__)
+
+
+# well, we need different trainers for pretraining and finetuning
+# alternatively, we can pass in the evaluation function as an argument
+#   -> sounds better
+
+
+def fine_tuning_loss(
+        loss_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
+):
+    """ If loss_fn takes in additional arguments, such arguments
+    should be partially applied to loss_fn before passing it to
+    this function.
+
+    :param loss_fn:
+    :return:
+    """
+    def loss(
+            batch: BatchEncoding,
+            model_output: SequenceClassifierOutput
+    ):
+        return loss_fn(
+            model_output.logits,
+            batch["labels"],
+        )
+
+    return loss
+
+
+def pretraining_loss():
+    def loss(
+            batch: BatchEncoding,
+            model_output: MaskedLMOutput
+    ):
+        return model_output.loss
+
+    return loss
+
+
+# TODO - there is code duplication of inner functions, think about how to refactor
 
 
 def train(
@@ -32,14 +74,13 @@ def train(
         save_steps: int,
         output_dir: str,
         logging_steps: int,
-        label_names: list[str],
-        loss_fn: Callable = binary_cross_entropy_with_logits,
-        evaluation_threshold: float = 0.75,
+        do_evaluate: Callable[[nn.Module, DataLoader], dict[str, float]],
+        get_loss: Callable[[BatchEncoding, ModelOutput], torch.Tensor],
         max_grad_norm: float = 1.0,
         early_stopping_patience: Optional[int] = None,
         metric_for_best_model: str = "macro-f1",
         greater_is_better: bool = True,
-        gradient_accumulation_steps: int = 1
+        gradient_accumulation_steps: int = 1,
 ):
     global_step = 0
     early_stopping_step: Optional[int]
@@ -61,18 +102,12 @@ def train(
                 total=len(train_dataloader),
                 desc=f"Epoch {epoch}")):
             epoch_step += 1
-
-            for key in batch:
-                if type(batch[key]) == torch.Tensor:
-                    batch[key] = batch[key].to(model.device)
             global_step += 1
 
+            set_device(batch, model.device)
+
             output = model(**batch)
-            loss = loss_fn(
-                input=output["logits"],
-                target=batch["labels"],
-                reduction="mean"
-            )
+            loss = get_loss(batch=batch, model_output=output)  # noqa
             loss.backward()
 
             if (epoch_step % gradient_accumulation_steps == 0
@@ -88,14 +123,7 @@ def train(
 
             if global_step % eval_steps == 0:
                 # evaluate
-                metrics = validation(
-                    model,
-                    eval_dataloader,
-                    label_names=label_names,
-                    global_step=global_step,
-                    evaluation_threshold=evaluation_threshold,
-                    loss_fn=loss_fn
-                )
+                metrics = do_evaluate(model, eval_dataloader)
 
                 logger.info(f"[GLOBAL_STEP = {global_step}] {pformat(metrics)}")
                 mlflow.log_metrics(
@@ -140,59 +168,100 @@ def train(
             # I mean, technically this works, right?
 
 
-def validation(
-        model,
-        eval_dataloader,
-        label_names: list[str],
-        global_step: int,
+def evaluate_finetuning(
         evaluation_threshold: float = 0.75,
-        loss_fn = binary_cross_entropy_with_logits,
-):
-    # we need some metrics here
-    model.eval()  # this would be prettier as a context manager, but whatever
+        loss_fn = binary_cross_entropy_with_logits
+) -> Callable[[nn.Module, DataLoader], dict[str, float]]:
+    def evaluate(
+        model: nn.Module,
+        eval_dataloader: DataLoader,
+    ) -> dict[str, float]:
 
-    # initialize tensors for predictions and references
-    eval_size = len(eval_dataloader.dataset)
-    logits_all = torch.empty(eval_size, 33, device="cpu", dtype=torch.float32)
-    references_all = torch.empty(eval_size, 33, device="cpu", dtype=torch.float32)
+        # we need some metrics here
+        model.eval()  # this would be prettier as a context manager, but whatever
 
-    with torch.no_grad():
-        for i, batch in tqdm(enumerate(eval_dataloader), total=len(eval_dataloader), desc="Validation"):
-            for key in batch:
-                if type(batch[key]) == torch.Tensor:
-                    batch[key] = batch[key].to(model.device)  # bruh?
-            output = model(**batch)
-            references = batch["labels"]
+        # initialize tensors for predictions and references
+        eval_size = len(eval_dataloader.dataset)  # noqa
+        logits_all = torch.empty(eval_size, 33, device="cpu", dtype=torch.float32)
+        references_all = torch.empty(eval_size, 33, device="cpu", dtype=torch.float32)
 
-            batch_slice = slice(i * eval_dataloader.batch_size, (i + 1) * eval_dataloader.batch_size)
-            logits_all[batch_slice] = output["logits"].detach().cpu()
-            references_all[batch_slice] = references.detach().cpu()
+        with torch.no_grad():
+            for i, batch in tqdm(enumerate(eval_dataloader), total=len(eval_dataloader), desc="Validation"):
+                for key in batch:
+                    if type(batch[key]) == torch.Tensor:
+                        batch[key] = batch[key].to(model.device)  # bruh?
+                output = model(**batch)
+                references = batch["labels"]
 
-    # compute loss
+                batch_slice = slice(i * eval_dataloader.batch_size, (i + 1) * eval_dataloader.batch_size)
+                logits_all[batch_slice] = output["logits"].detach().cpu()
+                references_all[batch_slice] = references.detach().cpu()
 
-    metrics = {
-        "eval_loss": loss_fn(
-            input=logits_all,
-            target=references_all,
-            reduction="mean"
-        ).item()
-    }
+        # compute loss
 
-    predictions_all = (torch.sigmoid(logits_all) > evaluation_threshold).int()  # noqa
+        metrics = {
+            "eval_loss": loss_fn(
+                input=logits_all,
+                target=references_all,
+                reduction="mean"
+            ).item()
+        }
 
-    averages = ["macro", "micro", "weighted"]
+        predictions_all = (torch.sigmoid(logits_all) > evaluation_threshold).int()  # noqa
 
-    for average in averages:
-        prf = precision_recall_fscore_support(
-            y_true=references_all,
-            y_pred=predictions_all,
-            average=average,
-            zero_division=0
-        )[:-1]
+        averages = ["macro", "micro", "weighted"]
 
-        for name, value in zip(["precision", "recall", "f1"], prf):
-            metrics[f"{average}-{name}"] = value
+        for average in averages:
+            prf = precision_recall_fscore_support(
+                y_true=references_all,
+                y_pred=predictions_all,
+                average=average,
+                zero_division=0
+            )[:-1]
 
-    model.train()
+            for name, value in zip(["precision", "recall", "f1"], prf):
+                metrics[f"{average}-{name}"] = value
 
-    return metrics
+        model.train()
+
+        return metrics
+
+    return evaluate
+
+
+def evaluate_pretraining():
+    # metrics = ["accuracy", "eval_loss", "perplexity"]
+    def do_evaluate(
+            model: nn.Module,
+            eval_dataloader: DataLoader,
+    ):
+        model.eval()  # this would be prettier as a context manager, but whatever
+
+        # initialize tensors for predictions and references
+        eval_size = len(eval_dataloader.dataset)  # noqa
+        # logits_all = torch.empty(eval_size, 33, device="cpu", dtype=torch.float32)
+        # references_all = torch.empty(eval_size, 33, device="cpu", dtype=torch.float32)
+
+        losses = []
+
+        with torch.no_grad():
+            for i, batch in tqdm(enumerate(eval_dataloader), total=len(eval_dataloader), desc="Validation"):
+                set_device(batch, model.device)
+                output: MaskedLMOutput = model(**batch)
+                # references = batch["labels"]
+                # batch_slice = slice(i * eval_dataloader.batch_size, (i + 1) * eval_dataloader.batch_size)
+                # logits_all[batch_slice] = output.logits.detach().cpu()
+                # references_all[batch_slice] = references.detach().cpu()
+                losses.append(output.loss.item())
+
+        # compute loss
+
+        metrics = {
+            "eval_loss": np.mean(losses)
+        }
+
+        model.train()
+        return metrics
+
+
+    return do_evaluate

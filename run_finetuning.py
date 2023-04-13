@@ -1,12 +1,12 @@
 import logging
+from functools import partial
 
 import pandas as pd
 import torch
+import torch.nn.functional as F
 from transformers import (
-    AutoTokenizer,
     set_seed,
     AutoModelForSequenceClassification,
-    PreTrainedTokenizer
 )
 
 from src.data import setup_dataloaders
@@ -31,7 +31,7 @@ def main():
 
     tokenizer = get_tokenizer(args)
 
-    tokenization_fn = get_tokenization_fn(
+    do_tokenize = get_tokenization_fn(
         tokenizer=tokenizer,
         padding=args.padding,  # noqa
         truncation=True,
@@ -99,9 +99,12 @@ def main():
         logging_steps=args.logging_steps,
         save_steps=args.save_steps,
         output_dir=args.output_dir,
-        label_names=labels,
-        evaluation_threshold=args.evaluation_threshold,
         max_grad_norm=args.max_grad_norm,
+        do_evaluate=evaluate_finetuning(evaluation_threshold=args.evaluation_threshold),
+        get_loss=fine_tuning_loss(loss_fn=partial(
+            F.binary_cross_entropy_with_logits,
+            reduction="mean"
+        )),
         early_stopping_patience=args.early_stopping_patience,
         metric_for_best_model=args.metric_for_best_model,
         greater_is_better=args.greater_is_better,
