@@ -1,6 +1,6 @@
 import logging
 
-
+import pandas as pd
 import torch
 from transformers import (
     AutoTokenizer,
@@ -9,7 +9,7 @@ from transformers import (
     PreTrainedTokenizer
 )
 
-from src.data import setup_data, setup_dataloaders
+from src.data import setup_dataloaders
 from src.cli.finetuning import FineTuningArguments, parse_args
 from src.preprocess import fine_tuning_pipeline
 from src.trainer import train, evaluate_finetuning, fine_tuning_loss
@@ -27,17 +27,9 @@ def main():
 
     set_seed(args.random_seed)
 
-    if args.use_tf32:
-        torch.backends.cuda.matmul.allow_tf32 = True  # noqa
-        torch.backends.cudnn.allow_tf32 = True  # noqa
-        logger.warning("TF32 enabled.")
+    maybe_tf32(args)
 
-    tokenizer: PreTrainedTokenizer = AutoTokenizer.from_pretrained(
-        args.pretrained_model_name_or_path,
-        model_max_length=args.max_length,
-        do_lower_case=args.do_lower_case,
-        cache_dir=args.cache_dir,
-    )
+    tokenizer = get_tokenizer(args)
 
     tokenization_fn = get_tokenization_fn(
         tokenizer=tokenizer,
@@ -45,7 +37,6 @@ def main():
         truncation=True,
         max_length=args.max_length,
     )
-
     labels = get_labels(args.labels_path)
 
     do_preprocess = pipeline(

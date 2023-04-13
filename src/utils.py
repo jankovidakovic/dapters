@@ -10,10 +10,11 @@ import torch
 from torch import nn
 from torch.optim import AdamW, Optimizer
 from torch.optim.lr_scheduler import LRScheduler
-from transformers import PreTrainedTokenizer, PreTrainedModel, get_scheduler
+from transformers import PreTrainedTokenizer, PreTrainedModel, get_scheduler, AutoTokenizer, BatchEncoding
 from transformers.utils import PaddingStrategy
 
-from src.finetuning.cli import FineTuningArguments
+from src.cli.finetuning import FineTuningArguments
+from src.cli.pretraining import PreTrainingArguments
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +122,8 @@ def get_tokenization_fn(
         tokenizer: PreTrainedTokenizer,
         padding: PaddingStrategy = PaddingStrategy.LONGEST,
         truncation: bool = True,
-        max_length: int = 64
+        max_length: int = 64,
+        return_special_tokens_mask: bool = False
 ):
     def tokenize(examples):
         return tokenizer(
@@ -129,7 +131,8 @@ def get_tokenization_fn(
             padding=padding,
             truncation=truncation,
             max_length=max_length,
-            return_tensors="pt"
+            return_tensors="pt",
+            return_special_tokens_mask=return_special_tokens_mask
         )
 
     return tokenize
@@ -208,3 +211,29 @@ def setup_optimizers(
     )
 
     return optimizer, scheduler
+
+
+def maybe_tf32(args: FineTuningArguments | PreTrainingArguments):
+    if args.use_tf32:
+        torch.backends.cuda.matmul.allow_tf32 = True  # noqa
+        torch.backends.cudnn.allow_tf32 = True  # noqa
+        logger.warning("TF32 enabled.")
+
+
+def get_tokenizer(args: FineTuningArguments | PreTrainingArguments) -> PreTrainedTokenizer:
+    return AutoTokenizer.from_pretrained(
+        args.pretrained_model_name_or_path,
+        model_max_length=args.max_length,
+        do_lower_case=args.do_lower_case,
+        cache_dir=args.cache_dir,
+    )
+
+
+def set_device(
+        batch: BatchEncoding,
+        device: torch.device
+) -> BatchEncoding:
+    for key, value in batch.items():
+        if isinstance(value, torch.Tensor):
+            batch[key] = value.to(device)
+    return batch
