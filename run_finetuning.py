@@ -60,7 +60,6 @@ def main():
     model = AutoModelForSequenceClassification.from_pretrained(
         args.pretrained_model_name_or_path,
         num_labels=len(labels),
-        problem_type=args.problem_type,
         cache_dir=args.cache_dir,
     )
     model = torch.compile(model).to(args.device)  # noqa
