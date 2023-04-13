@@ -14,7 +14,6 @@ class TrainingArguments:
     logging_steps: int
     save_steps: int
     output_dir: str
-    evaluation_threshold: float
     device: str
     use_tf32: bool
     early_stopping_patience: Optional[int]
@@ -82,13 +81,6 @@ def add_training_args(parser: ArgumentParser):
         type=int,
         default=None,
         help="Saving interval in steps. Defaults to None.",
-    )
-
-    group.add_argument(
-        "--evaluation_threshold",
-        type=float,
-        default=0.75,
-        help="Threshold for classification evaluation. Defaults to 0.75."
     )
 
     group.add_argument(

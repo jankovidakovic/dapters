@@ -10,34 +10,18 @@ from src.cli.training import add_training_args, TrainingArguments
 
 
 @dataclass
-class FineTuningArguments(
+class PreTrainingArguments(
     ModelArguments,
     TokenizerArguments,
     OptimizerArguments,
     DataArguments,
     TrainingArguments,
     ConfigurationArguments
-):
-    pass
+):  # theres actually no difference, right? at least for now
+    mlm_probability: float
 
 def get_parser():
-    parser = argparse.ArgumentParser("Fine-tuning arguments parser")
-
-    # parser.add_argument(
-        # "--save_total_limit",
-        # # type=int,
-        # required=False,
-        # default=3,
-        # help="Maximum number of checkpoints that will be saved.",
-    # )
-    # parser.add_argument(
-        # "--metric_for_best_model",
-        # type=str,
-        # required=False, # TODO!!!!
-        # choices=["f1_macro", "precision", "recall", "loss"],
-        # help="Metric used to compare model checkpoints. Checkpoints will be sorted according "
-             # "to the value of provided metric on the development sets."
-    # )
+    parser = argparse.ArgumentParser("Pretraining argument parser.")
 
     add_model_args(parser)
     add_tokenizer_args(parser)
@@ -46,8 +30,15 @@ def get_parser():
     add_training_args(parser)
     add_configuration_args(parser)
 
+    parser.add_argument(
+        "--mlm_probability",
+        type=float,
+        default=0.15,
+        help="Probability of masking each token for the masked language model."
+    )
+
     return parser
 
 def parse_args():
     args = get_parser().parse_args()
-    return FineTuningArguments(**vars(args))
+    return PreTrainingArguments(**vars(args))
