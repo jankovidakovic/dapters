@@ -4,7 +4,7 @@ from pprint import pformat
 import pandas as pd
 from datasets import Dataset, Sequence
 from torch.utils.data import DataLoader
-from transformers import DefaultDataCollator
+from transformers import DefaultDataCollator, DataCollator
 
 from src.finetuning.cli import FineTuningArguments
 from src.utils import dynamic_import, get_label_converter
@@ -73,7 +73,8 @@ def setup_split(tokenizing_fn, labels, dataframe_path, preprocessing_method: str
 def setup_dataloaders(
         train_dataset: Dataset,
         eval_dataset: Dataset,
-        args
+        args,
+        collate_fn: DataCollator = DefaultDataCollator(return_tensors="pt")
 ) -> (DataLoader, DataLoader):
     train_dataloader = DataLoader(
         train_dataset,
@@ -81,7 +82,7 @@ def setup_dataloaders(
         num_workers=args.dataloader_num_workers,
         pin_memory=True,
         shuffle=True,  # TODO
-        collate_fn=DefaultDataCollator(return_tensors="pt")  # TODO
+        collate_fn=collate_fn
     )
 
     eval_dataloader = DataLoader(
@@ -90,7 +91,7 @@ def setup_dataloaders(
         num_workers=args.dataloader_num_workers,
         pin_memory=True,
         shuffle=False,
-        collate_fn=DefaultDataCollator(return_tensors="pt")  # TODO
+        collate_fn=collate_fn
     )
 
     return train_dataloader, eval_dataloader
