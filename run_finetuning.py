@@ -10,10 +10,11 @@ from transformers import (
 )
 
 from src.data import setup_data, setup_dataloaders
-from src.finetuning import cli
-from src.finetuning.cli import FineTuningArguments
-from src.trainer import train
-from src.utils import setup_logging, get_labels, get_tokenization_fn, setup_optimizers
+from src.cli.finetuning import FineTuningArguments, parse_args
+from src.preprocess import fine_tuning_pipeline
+from src.trainer import train, evaluate_finetuning, fine_tuning_loss
+from src.utils import setup_logging, get_labels, get_tokenization_fn, setup_optimizers, maybe_tf32, get_tokenizer, \
+    pipeline, get_label_converter
 
 import mlflow
 
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    args: FineTuningArguments = cli.parse_args()
+    args: FineTuningArguments = parse_args()
     setup_logging(args)
 
     set_seed(args.random_seed)
@@ -47,7 +48,17 @@ def main():
 
     labels = get_labels(args.labels_path)
 
-    train_dataset, eval_dataset = setup_data(args, tokenization_fn, labels)
+    do_preprocess = pipeline(
+        pd.read_csv,
+        fine_tuning_pipeline(
+            initial_preprocessing=args.preprocessing,
+            tokenizing_fn=do_tokenize,
+            label_converter=get_label_converter(labels)
+        )
+    )
+
+    train_dataset = do_preprocess(args.train_dataset_path)
+    eval_dataset = do_preprocess(args.eval_dataset_path)
 
     # TODO - IterableDataset = ?
     train_dataloader, eval_dataloader = setup_dataloaders(

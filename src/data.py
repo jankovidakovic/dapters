@@ -6,7 +6,7 @@ from datasets import Dataset, Sequence
 from torch.utils.data import DataLoader
 from transformers import DefaultDataCollator, DataCollator
 
-from src.finetuning.cli import FineTuningArguments
+from src.cli.finetuning import FineTuningArguments
 from src.utils import dynamic_import, get_label_converter
 
 logger = logging.getLogger(__name__)
