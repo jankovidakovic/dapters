@@ -1,11 +1,11 @@
 import logging
-from typing import Callable
+from typing import Callable, Optional
 
 import pandas as pd
 import torch.utils.data
 from datasets import Dataset, Sequence
 
-from src.utils import pipeline, sample_by
+from src.utils import pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,13 @@ def drop(columns: list[str]):
     def apply(df):
         logger.warning(f"Dropping columns: {columns}")
         return df.drop(columns=columns)
+    return apply
+
+
+def keep(columns: list[str]):
+    def apply(df):
+        logger.warning(f"Keeping columns: {columns}")
+        return df.loc[:, columns]
     return apply
 
 
@@ -56,9 +63,21 @@ def sequence_columns(dataset: Dataset) -> list[str]:
             lambda entry: isinstance(entry[1], Sequence),  # value is a Sequence
             dataset.features.items())))
 
+
+def sample_by(sample_size: int, group_by: Optional[str | list[str]] = None) -> Callable[[pd.DataFrame], pd.DataFrame]:
+    def apply(df: pd.DataFrame):
+        logger.warning(f"Sampling {sample_size} examples" + (f" by {group_by}" if group_by else ""))
+        if group_by:
+            return df.groupby(group_by).sample(sample_size)
+        else:
+            return df.sample(sample_size)
+
+    return apply
+
+
 dummy = pipeline(
     drop(columns=["msg_id", "mdn", "final_pred", "source", "a2p_tags"]),
-    sample_by("cluster_id", 1),
+    sample_by(1, group_by="cluster_id"),
     deduplication("message"),
     drop(["cluster_id"])
 )

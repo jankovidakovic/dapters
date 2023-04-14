@@ -2,7 +2,6 @@ import json
 import operator
 from pprint import pformat
 from typing import Callable
-import pandas as pd
 import logging
 import os
 
@@ -41,13 +40,6 @@ def pipeline(*fs) -> Callable:
         return output
 
     return pipe
-
-
-def sample_by(column: str, sample_size: int) -> Callable[[pd.DataFrame], pd.DataFrame]:
-    def apply(df: pd.DataFrame):
-        return df.groupby(column).sample(sample_size)
-
-    return apply
 
 
 def make_logfile_name(args):
