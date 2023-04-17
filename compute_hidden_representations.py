@@ -94,7 +94,7 @@ def main():
     setup_logging(None)
 
     model: PreTrainedModel = AutoModel.from_pretrained(
-        args.model_name_or_path, cache_dir=args.cache_dir, do_lower_case=True
+        args.model_name_or_path, cache_dir=args.cache_dir
     )
 
     model = torch.compile(model).to("cuda")
