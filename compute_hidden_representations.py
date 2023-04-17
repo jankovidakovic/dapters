@@ -4,6 +4,7 @@ from argparse import ArgumentParser
 from dataclasses import dataclass
 from typing import Optional
 import os
+import json
 
 from transformers import (
     AutoModel,
@@ -15,6 +16,7 @@ from transformers import (
 import torch
 from torch.utils.data import DataLoader
 import pandas as pd
+import numpy as np
 from transformers.utils import PaddingStrategy
 from src.utils import (
     get_tokenization_fn,
@@ -152,10 +154,33 @@ def main():
         )
 
         logger.warning(f"Embeddings computed for {dataset_name}.")
-        df_final.loc[:, "embeddings"] = embeddings
+
         save_path = os.path.join(args.save_dir, f"{dataset_name}.csv")
+        save_path = os.path.abspath(save_path)
         df_final.to_csv(save_path)
-        logger.info(f"Dataset {dataset_name} successfully saved to {save_path}")
+        logger.warning(
+            f"Processed dataset {dataset_name} successfully saved to '{save_path}'"
+        )
+
+        representations_save_path = os.path.join(args.save_dir, f"{dataset_name}.npy")
+        representations_save_path = os.path.abspath(representations_save_path)
+        np.save(representations_save_path, embeddings)
+        logger.warning(
+            f"Representations successfully saved to '{representations_save_path}'"
+        )
+
+        # we want a JSON
+        json_to_save = {
+            "raw_dataset_path": os.path.abspath(dataset_path),
+            "processed_dataset_path": os.path.abspath(save_path),
+            "cls_representations_path": os.path.abspath(representations_save_path),
+        }
+
+        json_save_path = os.path.join(args.save_dir, f"info.{dataset_name}.json")
+        json_save_path = os.path.abspath(json_save_path)
+        with open(json_save_path) as f:
+            json.dump(json_to_save, f, indent=2)
+        logger.warning(f"Metadata JSON file successfully saved to '{json_save_path}'")
 
     logger.warning(f"Inference finished.")
 
