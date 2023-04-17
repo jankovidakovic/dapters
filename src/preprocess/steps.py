@@ -56,6 +56,11 @@ def convert_to_torch(columns: list[str] | Callable[[Dataset], list[str]]) -> Cal
     return apply
 
 
+def log_size(dataset: Dataset):
+    logger.warning(f"Dataset size: {len(dataset)}")
+    return dataset
+
+
 def sequence_columns(dataset: Dataset) -> list[str]:
     return list(map(
         lambda entry: entry[0],  # feature key (name)
