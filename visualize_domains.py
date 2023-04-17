@@ -2,29 +2,30 @@ import logging
 import os
 from argparse import ArgumentParser
 from dataclasses import dataclass
-from typing import Callable, Optional
+from pprint import pformat
+from typing import Optional
 
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
 from matplotlib import pyplot as plt
 from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
 from torch.utils.data import DataLoader
-from tqdm import tqdm
 from transformers import AutoModel, AutoTokenizer, DefaultDataCollator, PreTrainedModel, PreTrainedTokenizer
 from transformers.utils import PaddingStrategy
 
 from src.preprocess.steps import keep, deduplication, to_hf_dataset, hf_map, convert_to_torch, \
     sequence_columns, maybe_sample, log_size
 
-from src.utils import pipeline, get_tokenization_fn, set_device, setup_logging
+from src.utils import pipeline, get_tokenization_fn, setup_logging, get_cls_token, get_representations
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class CLI:
+    tsne_perplexity: Optional[int]
     customer_name: Optional[str]
     save_path: str
     message_column: str
@@ -34,12 +35,18 @@ class CLI:
     model_name_or_path: str
     tokenizer_path: str
     batch_size: int
+    dim_red_method: str
     pca_on_first_only: bool
 
 
 def get_args() -> CLI:
     parser = ArgumentParser(
         "Visualization of hidden representations of transformers."
+    )
+    parser.add_argument(
+        "--dim_red_method",
+        type=str,
+        choices=["pca", "tsne"]
     )
     parser.add_argument(
         "--customer_name",
@@ -99,37 +106,14 @@ def get_args() -> CLI:
         help="Sample size."
     )
 
+    parser.add_argument(
+        "--tsne_perplexity",
+        type=int,
+        help="Perplexity to use if algorithm is tSNE."
+    )
+
     args = parser.parse_args()
     return CLI(**vars(args))
-
-
-# TODO - create python scripts for higher-order visualization
-#   that makes it more efficient because we can pass in the compiled model
-
-
-def get_cls_token(hidden_states: torch.Tensor) -> torch.Tensor:
-    # batch_size, sequence_length, hidden_size = hidden_states.shape
-    return hidden_states[:, 0, :]
-
-
-def get_representations(
-        model: nn.Module,
-        dataloader: DataLoader,
-        n_examples: int,
-        semantic_composition: Callable[[torch.Tensor], torch.Tensor] = get_cls_token
-):
-    representations = np.empty((n_examples, model.config.hidden_size))
-    with torch.no_grad():
-        for i, batch in tqdm(enumerate(dataloader), total=len(dataloader), desc="Inference"):
-            set_device(batch, model.device)
-            hidden_states = model(**batch).last_hidden_state
-
-            slice_index = slice(i * dataloader.batch_size, (i+1) * dataloader.batch_size)
-            representations[slice_index, :] = semantic_composition(hidden_states).detach().cpu().numpy()
-
-        # TODO - make this layer by layer
-
-    return representations
 
 
 def main():
@@ -199,17 +183,33 @@ def main():
         ))
 
     # now do the PCA
-    pca = PCA(n_components=2)
-    if args.pca_on_first_only:
-        logger.warning(f"Fitting PCA on first dataset only.")
-        pca.fit(all_embeddings[0])
-    else:
-        logger.warning(f"Fitting PCA on all data.")
-        pca.fit(np.concatenate(all_embeddings, axis=0))
+    if args.dim_red_method == "pca":
+        pca = PCA(n_components=2)
+        if args.pca_on_first_only:
+            logger.warning(f"Fitting PCA on first dataset only.")
+            pca.fit(all_embeddings[0])
+        else:
+            logger.warning(f"Fitting PCA on all data.")
+            pca.fit(np.concatenate(all_embeddings, axis=0))
 
-    pca_representations = [
-        pca.transform(embeddings) for embeddings in all_embeddings
-    ]
+        pca_representations = [
+            pca.transform(embeddings) for embeddings in all_embeddings
+        ]
+    else:
+        tsne = TSNE(
+            n_components=2,
+            method="exact",
+            perplexity=args.tsne_perplexity,
+            verbose=2
+        )
+        pca_representations = [
+            r for r in np.split(
+                tsne.fit_transform(np.concatenate(all_embeddings, axis=0)),
+                np.cumsum([len(e) for e in all_embeddings]))
+        ]  # works like a charm
+        if len(pca_representations[-1]) == 0:
+            pca_representations = pca_representations[:-1]
+        logger.warning(f"tSNE sizes: {pformat([len(r) for r in pca_representations])}")
 
     centroids = [r.mean(axis=0) for r in pca_representations]
 
@@ -249,16 +249,22 @@ def main():
             s=100
         )
 
-    plt.xlabel(f"1st principal component ({pca.explained_variance_ratio_[0] * 100:.2f}% $\sigma^2$)")
-    plt.ylabel(f"2nd principal component ({pca.explained_variance_ratio_[1] * 100:.2f}% $\sigma^2$)")
+    title = f"-transformed [CLS]. customer={args.customer_name}; N={args.sample_size}. "
+
+    if args.dim_red_method == "pca":
+        plt.xlabel(f"1st principal component ({pca.explained_variance_ratio_[0] * 100:.2f}% $\sigma^2$)")   # noqa
+        plt.ylabel(f"2nd principal component ({pca.explained_variance_ratio_[1] * 100:.2f}% $\sigma^2$)")
+        total_variance = pca.explained_variance_ratio_[0] + pca.explained_variance_ratio_[1]
+        plt.title("PCA" + title + f"{total_variance * 100:.2f}% $\sigma^2$")
+    else:
+        plt.xlabel(f"t-SNE 1st dimension")
+        plt.ylabel(f"t-SNE 2nd dimension")
+        plt.title("t-SNE" + title)
 
     plt.legend()
-    total_variance = pca.explained_variance_ratio_[0] + pca.explained_variance_ratio_[1]
-    plt.title(f"PCA-transformed [CLS]. customer={args.customer_name}; N={args.sample_size}. "
-              f"{total_variance * 100:.2f}% $\sigma^2$")
     plt.savefig(args.save_path)
 
-    logger.warning(f"Saved PCA plot to {args.save_path}.")
+    logger.warning(f"Saved plot to {args.save_path}.")
 
 
 if __name__ == "__main__":
