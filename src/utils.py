@@ -5,10 +5,13 @@ from typing import Callable
 import logging
 import os
 
+import numpy as np
 import torch
-from torch import nn
+from torch import nn, nn as nn
 from torch.optim import AdamW, Optimizer
 from torch.optim.lr_scheduler import LRScheduler
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 from transformers import PreTrainedTokenizer, PreTrainedModel, get_scheduler, AutoTokenizer, BatchEncoding
 from transformers.utils import PaddingStrategy
 
@@ -230,3 +233,28 @@ def set_device(
         if isinstance(value, torch.Tensor):
             batch[key] = value.to(device)
     return batch
+
+
+def get_cls_token(hidden_states: torch.Tensor) -> torch.Tensor:
+    # batch_size, sequence_length, hidden_size = hidden_states.shape
+    return hidden_states[:, 0, :]
+
+
+def get_representations(
+        model: nn.Module,
+        dataloader: DataLoader,
+        n_examples: int,
+        semantic_composition: Callable[[torch.Tensor], torch.Tensor] = get_cls_token
+):
+    representations = np.empty((n_examples, model.config.hidden_size))
+    with torch.no_grad():
+        for i, batch in tqdm(enumerate(dataloader), total=len(dataloader), desc="Inference"):
+            set_device(batch, model.device)
+            hidden_states = model(**batch).last_hidden_state
+
+            slice_index = slice(i * dataloader.batch_size, (i+1) * dataloader.batch_size)
+            representations[slice_index, :] = semantic_composition(hidden_states).detach().cpu().numpy()
+
+        # TODO - make this layer by layer
+
+    return representations
