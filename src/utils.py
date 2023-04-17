@@ -48,9 +48,13 @@ def make_logfile_name(args):
 
 def setup_logging(args):
     # logging
-    dirname = os.path.dirname(os.path.abspath(args.log_path))
-    os.makedirs(dirname, exist_ok=True)
-    log_filename = make_logfile_name(args)
+    handlers = [logging.StreamHandler()]
+    if hasattr(args, "log_path"):
+        dirname = os.path.dirname(os.path.abspath(args.log_path))
+        os.makedirs(dirname, exist_ok=True)
+        log_filename = make_logfile_name(args)
+        handlers.append(logging.FileHandler(filename=log_filename, mode="w"))
+        logging.info(f"Logging to file: {os.path.abspath(log_filename)}")
 
     logging.root.handlers = []
     logging.basicConfig(
@@ -58,12 +62,8 @@ def setup_logging(args):
         datefmt="%m/%d/%Y %H:%M:%S",
         # log info only on main process
         level=logging.INFO,  # TODO - info only if verbose?
-        handlers=[
-            logging.FileHandler(filename=log_filename, mode="w"),
-            logging.StreamHandler(),
-        ],
+        handlers=handlers,
     )
-    logging.info(f"Logging to file: {os.path.abspath(log_filename)}")
 
 
 def get_label_converter(labels: list[str]):
