@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class CLI:
-    tsne_perplexity: Optional[int]
     customer_name: Optional[str]
     save_path: str
     message_column: str
@@ -35,18 +34,12 @@ class CLI:
     model_name_or_path: str
     tokenizer_path: str
     batch_size: int
-    dim_red_method: str
     pca_on_first_only: bool
 
 
 def get_args() -> CLI:
     parser = ArgumentParser(
         "Visualization of hidden representations of transformers."
-    )
-    parser.add_argument(
-        "--dim_red_method",
-        type=str,
-        choices=["pca", "tsne"]
     )
     parser.add_argument(
         "--customer_name",
@@ -67,7 +60,6 @@ def get_args() -> CLI:
         "--cache_dir",
         type=str,
         default="/data2/jvidakovic/.cache/huggingface",
-
     )
     parser.add_argument(
         "--batch_size",
@@ -88,30 +80,20 @@ def get_args() -> CLI:
         required=True,
         help="Paths to datasets."
     )
-
     parser.add_argument(
         "--model_name_or_path",
         type=str,
     )
-
     parser.add_argument(
         "--tokenizer_path",
         type=str,
     )
-
     parser.add_argument(
         "--sample_size",
         type=int,
         default=1000,
         help="Sample size."
     )
-
-    parser.add_argument(
-        "--tsne_perplexity",
-        type=int,
-        help="Perplexity to use if algorithm is tSNE."
-    )
-
     args = parser.parse_args()
     return CLI(**vars(args))
 
@@ -183,33 +165,17 @@ def main():
         ))
 
     # now do the PCA
-    if args.dim_red_method == "pca":
-        pca = PCA(n_components=2)
-        if args.pca_on_first_only:
-            logger.warning(f"Fitting PCA on first dataset only.")
-            pca.fit(all_embeddings[0])
-        else:
-            logger.warning(f"Fitting PCA on all data.")
-            pca.fit(np.concatenate(all_embeddings, axis=0))
-
-        pca_representations = [
-            pca.transform(embeddings) for embeddings in all_embeddings
-        ]
+    pca = PCA(n_components=2)
+    if args.pca_on_first_only:
+        logger.warning(f"Fitting PCA on first dataset only.")
+        pca.fit(all_embeddings[0])
     else:
-        tsne = TSNE(
-            n_components=2,
-            method="exact",
-            perplexity=args.tsne_perplexity,
-            verbose=2
-        )
-        pca_representations = [
-            r for r in np.split(
-                tsne.fit_transform(np.concatenate(all_embeddings, axis=0)),
-                np.cumsum([len(e) for e in all_embeddings]))
-        ]  # works like a charm
-        if len(pca_representations[-1]) == 0:
-            pca_representations = pca_representations[:-1]
-        logger.warning(f"tSNE sizes: {pformat([len(r) for r in pca_representations])}")
+        logger.warning(f"Fitting PCA on all data.")
+        pca.fit(np.concatenate(all_embeddings, axis=0))
+
+    pca_representations = [
+        pca.transform(embeddings) for embeddings in all_embeddings
+    ]
 
     centroids = [r.mean(axis=0) for r in pca_representations]
 
