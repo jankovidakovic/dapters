@@ -13,14 +13,17 @@ logger = logging.getLogger(__name__)
 def deduplication(subset: str | list[str]):
     def apply(df):
         logger.warning(f"Dropping duplicates by subset: {subset}")
-        return df.drop_duplicates(subset=subset)
+        df = df.drop_duplicates(subset=subset)
+        logger.warning(f"Remaining examples: {len(df)}")
+        return df
     return apply
 
 
 def drop(columns: list[str]):
     def apply(df):
         logger.warning(f"Dropping columns: {columns}")
-        return df.drop(columns=columns)
+        df = df.drop(columns=columns)
+        logger.warning(f"Remaining columns: {df.columns}")
     return apply
 
 
@@ -73,10 +76,11 @@ def sample_by(sample_size: int, group_by: Optional[str | list[str]] = None) -> C
     def apply(df: pd.DataFrame):
         logger.warning(f"Sampling {sample_size} examples" + (f" by {group_by}" if group_by else ""))
         if group_by:
-            return df.groupby(group_by).sample(sample_size)
+            df = df.groupby(group_by).sample(sample_size)
         else:
-            return df.sample(sample_size)
-
+            df = df.sample(sample_size)
+        logger.warning(f"Remaining examples: {len(df)}")
+        return df
     return apply
 
 
