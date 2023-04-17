@@ -50,6 +50,7 @@ def get_args() -> CLI:
         nargs="+",
         help="Paths to JSON files containing the configs.",
     )
+    parser.add_argument("--pca_on_first_only", action="store_true")
     args = parser.parse_args()
     return CLI(**vars(args))
 
