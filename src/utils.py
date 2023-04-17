@@ -115,11 +115,12 @@ def get_tokenization_fn(
         padding: PaddingStrategy = PaddingStrategy.LONGEST,
         truncation: bool = True,
         max_length: int = 64,
-        return_special_tokens_mask: bool = False
+        return_special_tokens_mask: bool = False,
+        message_column: str = "message"
 ):
     def tokenize(examples):
         return tokenizer(
-            examples["message"],
+            examples[message_column],
             padding=padding,
             truncation=truncation,
             max_length=max_length,
