@@ -188,6 +188,7 @@ def main():
 
     # compute cetroids
     centroids = [r.mean(axis=0) for r in representations]
+    joint_centroid = np.concatenate(representations).mean(axis=0)
 
     # compute pairwise distances
     for i, c1 in enumerate(centroids):
@@ -224,6 +225,17 @@ def main():
             color=colors[k],
             s=100
         )
+
+    # plot joint centroid
+    plt.scatter(
+        joint_centroid[0],
+        joint_centroid[1],
+        marker="^",
+        edgecolors="black",
+        linewidths=1,
+        color="black",
+        s=100
+    )
 
     plt.xlabel(f"t-SNE 1st dimension")
     plt.ylabel(f"t-SNE 2nd dimension")

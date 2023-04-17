@@ -179,6 +179,8 @@ def main():
 
     centroids = [r.mean(axis=0) for r in pca_representations]
 
+    joint_centroid = np.concatenate(pca_representations, axis=0).mean(axis=0)
+
     # compute pairwise distances
     for i, c1 in enumerate(centroids):
         for j, c2 in enumerate(centroids):
@@ -214,6 +216,17 @@ def main():
             color=colors[k],
             s=100
         )
+
+    # plot joint centroid
+    plt.scatter(
+        joint_centroid[0],
+        joint_centroid[1],
+        marker="^",
+        edgecolors="black",
+        linewidths=1,
+        color="black",
+        s=100
+    )
 
     plt.xlabel(f"1st principal component ({pca.explained_variance_ratio_[0] * 100:.2f}% $\sigma^2$)")   # noqa
     plt.ylabel(f"2nd principal component ({pca.explained_variance_ratio_[1] * 100:.2f}% $\sigma^2$)")
