@@ -215,17 +215,10 @@ def main():
             s=100
         )
 
-    title = f"-transformed [CLS]. customer={args.customer_name}; N={args.sample_size}. "
-
-    if args.dim_red_method == "pca":
-        plt.xlabel(f"1st principal component ({pca.explained_variance_ratio_[0] * 100:.2f}% $\sigma^2$)")   # noqa
-        plt.ylabel(f"2nd principal component ({pca.explained_variance_ratio_[1] * 100:.2f}% $\sigma^2$)")
-        total_variance = pca.explained_variance_ratio_[0] + pca.explained_variance_ratio_[1]
-        plt.title("PCA" + title + f"{total_variance * 100:.2f}% $\sigma^2$")
-    else:
-        plt.xlabel(f"t-SNE 1st dimension")
-        plt.ylabel(f"t-SNE 2nd dimension")
-        plt.title("t-SNE" + title)
+    plt.xlabel(f"1st principal component ({pca.explained_variance_ratio_[0] * 100:.2f}% $\sigma^2$)")   # noqa
+    plt.ylabel(f"2nd principal component ({pca.explained_variance_ratio_[1] * 100:.2f}% $\sigma^2$)")
+    total_variance = pca.explained_variance_ratio_[0] + pca.explained_variance_ratio_[1]
+    plt.title(f"[CLS] embeddings (PCA). customer={args.customer_name}; N={args.sample_size}. {total_variance * 100:.2f}% $\sigma^2$")
 
     plt.legend()
     plt.savefig(args.save_path)
