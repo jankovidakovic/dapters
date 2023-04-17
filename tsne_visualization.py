@@ -31,6 +31,7 @@ class CLI:
     model_name_or_path: str
     tokenizer_path: str
     batch_size: int
+    learning_rate: str | float
 
 
 def get_args() -> CLI:
@@ -89,6 +90,11 @@ def get_args() -> CLI:
         "--perplexity",
         type=int,
         help="tSNE perplexity"
+    )
+    parser.add_argument(
+        "--learning_rate",
+        type=float,
+        default="auto"
     )
     args = parser.parse_args()
     return CLI(**vars(args))
@@ -168,7 +174,8 @@ def main():
         n_components=2,
         method="exact",
         perplexity=args.perplexity,
-        verbose=2
+        verbose=2,
+        learning_rate=args.learning_rate
     )
     representations = [
         r for r in np.split(
@@ -220,7 +227,7 @@ def main():
 
     plt.xlabel(f"t-SNE 1st dimension")
     plt.ylabel(f"t-SNE 2nd dimension")
-    plt.title(f"[CLS] embeddings (t-SNE). customer={args.customer_name}; N={args.sample_size}.")
+    plt.title(f"[CLS] embeddings (t-SNE). customer={args.customer_name}; N={args.sample_size}. perplexity={args.perplexity}")
 
     plt.legend()
     plt.savefig(args.save_path)
