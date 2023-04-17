@@ -155,6 +155,8 @@ def main():
 
         logger.warning(f"Embeddings computed for {dataset_name}.")
 
+        os.makedirs(args.save_dir, exist_ok=True)
+
         save_path = os.path.join(args.save_dir, f"{dataset_name}.csv")
         save_path = os.path.abspath(save_path)
         df_final.to_csv(save_path)
@@ -178,7 +180,7 @@ def main():
 
         json_save_path = os.path.join(args.save_dir, f"info.{dataset_name}.json")
         json_save_path = os.path.abspath(json_save_path)
-        with open(json_save_path) as f:
+        with open(json_save_path, "w") as f:
             json.dump(json_to_save, f, indent=2)
         logger.warning(f"Metadata JSON file successfully saved to '{json_save_path}'")
 
