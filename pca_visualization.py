@@ -234,7 +234,6 @@ def main():
     plt.title(f"[CLS] embeddings (PCA). customer={args.customer_name}; N={args.sample_size}. {total_variance * 100:.2f}% $\sigma^2$")
 
     plt.legend()
-    os.makedirs(args.save_path, exist_ok=True)
     plt.savefig(args.save_path)
 
     logger.warning(f"Saved plot to {args.save_path}.")
