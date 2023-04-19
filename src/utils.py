@@ -6,6 +6,7 @@ import logging
 import os
 
 import numpy as np
+import pandas as pd
 import torch
 from torch import nn, nn as nn
 from torch.optim import AdamW, Optimizer
@@ -17,6 +18,7 @@ from transformers.utils import PaddingStrategy
 
 from src.cli.finetuning import FineTuningArguments
 from src.cli.pretraining import PreTrainingArguments
+from src.types import HiddenRepresentationConfig, Domain
 
 logger = logging.getLogger(__name__)
 
@@ -258,3 +260,23 @@ def get_representations(
         # TODO - make this layer by layer
 
     return representations
+
+
+def get_domain_from_config(
+        config: HiddenRepresentationConfig
+) -> Domain:
+    # load cluster ids
+    df = pd.read_csv(config.processed_datasets[0])
+    cluster_ids = df.loc[:, "cluster_id"].to_numpy()
+
+    # load hidden representations
+    representations = np.load(config.cls_representations[0])
+
+    # compute centroid
+    centroid = np.mean(representations, axis=0)
+
+    return Domain(
+        representations=representations,
+        centroid=centroid,
+        cluster_ids=cluster_ids
+    )
