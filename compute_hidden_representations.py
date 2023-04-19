@@ -6,6 +6,7 @@ from typing import Optional
 import os
 import json
 
+from pandas import DataFrame
 from transformers import (
     AutoModel,
     AutoTokenizer,
@@ -145,6 +146,7 @@ def main():
         pd.read_csv,
         keep([args.message_column, "cluster_id"]),
         deduplication(args.message_column),
+        DataFrame.dropna,
         log_size,
     )
 
