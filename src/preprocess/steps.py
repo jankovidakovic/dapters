@@ -72,26 +72,31 @@ def sequence_columns(dataset: Dataset) -> list[str]:
             dataset.features.items())))
 
 
-def maybe_sample(sample_size: int) -> Callable[[pd.DataFrame], pd.DataFrame]:
+def maybe_sample(sample_size: int, random_state: int = 19041054) -> Callable[[pd.DataFrame], pd.DataFrame]:
     def apply(df: pd.DataFrame):
         if sample_size > (l := len(df)):
             logger.warning(f"Sample size {sample_size} is larger than the dataset size ({l}). "
                            f"Returning the whole dataset.")
         else:
             logger.warning(f"Sampling {sample_size} examples")
-            df = df.sample(sample_size)
+            df = df.sample(sample_size, random_state=random_state)
             logger.warning(f"Remaining examples: {len(df)}")
         return df
     return apply
 
 
-def sample_by(sample_size: int, group_by: Optional[str | list[str]] = None) -> Callable[[pd.DataFrame], pd.DataFrame]:
+def sample_by(
+        sample_size: int,
+        group_by: Optional[str | list[str]] = None,
+        random_state: int = 19041054
+) -> Callable[[pd.DataFrame], pd.DataFrame]:
     def apply(df: pd.DataFrame):
         logger.warning(f"Sampling {sample_size} examples" + (f" by {group_by}" if group_by else ""))
         if group_by:
-            df = df.groupby(group_by).sample(sample_size)
+            df = df.groupby(group_by)\
+                .sample(sample_size, random_state=random_state)
         else:
-            df = df.sample(sample_size)
+            df = df.sample(sample_size, random_state=random_state)
         logger.warning(f"Remaining examples: {len(df)}")
         return df
     return apply
