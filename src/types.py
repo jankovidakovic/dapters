@@ -1,7 +1,11 @@
+import logging
 from dataclasses import dataclass, field
 
 import numpy as np
 from sklearn.decomposition import PCA
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -14,11 +18,11 @@ class HiddenRepresentationConfig:
 
 @dataclass
 class Domain:
+    name: str
     representations: np.ndarray
     pca_representations: np.ndarray = field(init=False)
     centroid: np.ndarray
     cluster_ids: np.ndarray
-    covmat: np.ndarray = field(init=False)
 
     def apply_pca(self, pca: PCA):
         self.pca_representations = pca.transform(self.representations)
@@ -28,16 +32,31 @@ class Domain:
 class DomainCollection:
     domains: list[Domain]
     pca_dim: int
+    representation_covmat: np.ndarray = field(init=False)
+    joint_centroid: np.ndarray = field(init=False)
 
     def __post_init__(self):
+        logger.warning(f"Initializing domain collection of {len(self.domains)} domains.")
         all_representations = np.concatenate(
-            (domain.representations for domain in self.domains)
+            [domain.representations for domain in self.domains],
+            axis=0
         )
-        covmat = np.cov(all_representations, rowvar=False)
+        logger.warning(f"Concatenated domain representations into shape {all_representations.shape}")
+
+        self.representation_covmat = np.cov(all_representations, rowvar=False)
+        logger.warning(f"Computed covariance matrix of shape {self.representation_covmat.shape}")
+
+        self.joint_centroid = np.mean(all_representations, axis=0)
+        logger.warning(f"Computed joint centroid.")
 
         # PCA
         pca = PCA(n_components=self.pca_dim)
         pca.fit(all_representations)
+        logger.warning(F"PCA with {self.pca_dim} components fit on all representations.")
         for domain in self.domains:
             domain.apply_pca(pca)
-            domain.covmat = covmat
+
+        logger.warning(f"Applied PCA and set covmat for all domains")
+
+    def __getitem__(self, item):
+        return self.domains[item]

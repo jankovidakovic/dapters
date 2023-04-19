@@ -265,18 +265,23 @@ def get_representations(
 def get_domain_from_config(
         config: HiddenRepresentationConfig
 ) -> Domain:
+    logger.warning(f"Initializing domain {config.name}")
     # load cluster ids
     df = pd.read_csv(config.processed_datasets[0])
     cluster_ids = df.loc[:, "cluster_id"].to_numpy()
+    logger.warning(f"Loaded {len(cluster_ids)} cluster_ids")
 
     # load hidden representations
     representations = np.load(config.cls_representations[0])
+    logger.warning(f"Loaded representations of shape {representations.shape}")
 
     # compute centroid
     centroid = np.mean(representations, axis=0)
+    logger.warning(f"Computed representation centroid.")
 
     return Domain(
         representations=representations,
         centroid=centroid,
-        cluster_ids=cluster_ids
+        cluster_ids=cluster_ids,
+        name=config.name
     )

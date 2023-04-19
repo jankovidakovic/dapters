@@ -1,40 +1,47 @@
+import logging
+from typing import Optional
+
 from scipy.spatial.distance import mahalanobis
 
 from src.distances import euclidean_distance, cosine_distance, jaccard_on_cluster_ids, coral, cmd
-from src.types import Domain
+from src.types import DomainCollection
 
 
-def pairwise_distances(
-        source: Domain,
-        target: Domain
+logger = logging.getLogger(__name__)
+
+
+def compute_pairwise_distances(
+        domain_collection: DomainCollection,
+        source: int,
+        target: int
 ):
     centroid_distances = {
-        "euclidean": euclidean_distance(source.centroid, target.centroid),
-        "mahalanobis": mahalanobis(source.centroid, target.centroid, source.covmat),
-        "cosine_distance": cosine_distance(source.centroid, target.centroid),
+        "euclidean": euclidean_distance(domain_collection[source].centroid, domain_collection[target].centroid),
+        "mahalanobis": mahalanobis(domain_collection[source].centroid, domain_collection[target].centroid, domain_collection[source].covmat),
+        "cosine_distance": cosine_distance(domain_collection[source].centroid, domain_collection[target].centroid),
     }
 
     domain_divergence_metrics = {
         "jaccard_distance_on_cluster_ids": jaccard_on_cluster_ids(
-            source.cluster_ids,
-            target.cluster_ids
+            domain_collection[source].cluster_ids,
+            domain_collection[target].cluster_ids
         ),
         "coral": coral(
-            source.representations,
-            target.representations
+            domain_collection[source].representations,
+            domain_collection[target].representations
         ),
         "coral_pca": coral(
-            source.pca_representations,
-            target.pca_representations
+            domain_collection[source].pca_representations,
+            domain_collection[target].pca_representations
         ),
         "cmd_10": cmd(
-            source.representations,
-            target.representations,
+            domain_collection[source].representations,
+            domain_collection[target].representations,
             n_moments=10
         ),
         "cmd_10_pca": cmd(
-            source.pca_representations,
-            target.pca_representations,
+            domain_collection[source].pca_representations,
+            domain_collection[target].pca_representations,
             n_moments=10
         )
     }
