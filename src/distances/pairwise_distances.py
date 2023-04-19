@@ -10,18 +10,29 @@ from src.types import DomainCollection
 logger = logging.getLogger(__name__)
 
 
-def compute_pairwise_distances(
+def compute_centroid_distances(
         domain_collection: DomainCollection,
         source: int,
         target: int
 ):
-    centroid_distances = {
+    return {
         "euclidean": euclidean_distance(domain_collection[source].centroid, domain_collection[target].centroid),
-        "mahalanobis": mahalanobis(domain_collection[source].centroid, domain_collection[target].centroid, domain_collection[source].covmat),
-        "cosine_distance": cosine_distance(domain_collection[source].centroid, domain_collection[target].centroid),
+        "mahalanobis": mahalanobis(
+            domain_collection[source].centroid,
+            domain_collection[target].centroid,
+            domain_collection.representation_covmat),
+        "cosine_distance": cosine_distance(
+            domain_collection[source].centroid,
+            domain_collection[target].centroid),
     }
 
-    domain_divergence_metrics = {
+
+def compute_domain_divergences(
+        domain_collection: DomainCollection,
+        source: int,
+        target: int,
+):
+    return {
         "jaccard_distance_on_cluster_ids": jaccard_on_cluster_ids(
             domain_collection[source].cluster_ids,
             domain_collection[target].cluster_ids
@@ -45,6 +56,25 @@ def compute_pairwise_distances(
             n_moments=10
         )
     }
+
+
+
+def compute_pairwise_distances(
+        domain_collection: DomainCollection,
+        source: int,
+        target: int
+):
+    centroid_distances = compute_centroid_distances(
+        domain_collection,
+        source,
+        target
+    )
+
+    domain_divergence_metrics = compute_domain_divergences(
+        domain_collection,
+        source,
+        target
+    )
 
     return {
         "centroid_distances": centroid_distances,

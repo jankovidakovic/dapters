@@ -53,6 +53,7 @@ class DomainCollection:
         pca = PCA(n_components=self.pca_dim)
         pca.fit(all_representations)
         logger.warning(F"PCA with {self.pca_dim} components fit on all representations.")
+        logger.warning(f"Total variance explained: {np.sum(pca.explained_variance_ratio_) * 100:.4f}%")
         for domain in self.domains:
             domain.apply_pca(pca)
 
@@ -60,3 +61,11 @@ class DomainCollection:
 
     def __getitem__(self, item):
         return self.domains[item]
+
+
+    def __len__(self):
+        return len(self.domains)
+
+
+    def __iter__(self):
+        yield from self.domains
