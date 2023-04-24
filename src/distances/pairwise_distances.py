@@ -33,7 +33,7 @@ def compute_domain_divergences(
         target: int,
 ):
     return {
-        "jaccard_distance_on_cluster_ids": jaccard_on_cluster_ids(
+        "jaccard_distance_on_cluster_ids": 1 - jaccard_on_cluster_ids(
             domain_collection[source].cluster_ids,
             domain_collection[target].cluster_ids
         ),
