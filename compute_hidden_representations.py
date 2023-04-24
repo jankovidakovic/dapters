@@ -215,7 +215,8 @@ def main():
             ],
             cls_representations=[
                 f"{save_path}.npy" for save_path in dataset_save_paths
-            ]
+            ],
+            model_name_or_path=args.model_name_or_path
         )
         json_save_path = os.path.join(args.save_dir, f"info.{dataset_name}.json")
         json_save_path = os.path.abspath(json_save_path)
