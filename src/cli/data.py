@@ -6,6 +6,7 @@ class DataArguments:
     train_dataset_path: str
     eval_dataset_path: str
     preprocessing: str
+    message_column: str
 
 
 def add_data_args(parser):
@@ -24,4 +25,11 @@ def add_data_args(parser):
         type=str,
         help="Name of the preprocessing method to use. See src/preprocess for available methods."
 
+    )
+
+    group.add_argument(
+        "--message_column",
+        type=str,
+        default="preprocessed",
+        help="Name of the column containing the message to be classified."
     )

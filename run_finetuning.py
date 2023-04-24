@@ -36,6 +36,7 @@ def main():
         padding=args.padding,  # noqa
         truncation=True,
         max_length=args.max_length,
+        message_column=args.message_column
     )
     labels = get_labels(args.labels_path)
 
