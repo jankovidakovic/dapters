@@ -9,6 +9,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from sklearn.decomposition import PCA
 
+from src.types import HiddenRepresentationConfig
 from src.utils import setup_logging
 
 logger = logging.getLogger(__name__)
@@ -21,13 +22,7 @@ class CLI:
     save_path: str
     message_column: str
     pca_on_first_only: bool
-
-
-@dataclass
-class DatasetConfig:
-    raw_dataset_path: str
-    processed_dataset_path: str
-    cls_representations_path: str
+    redacted: bool
 
 
 def get_args() -> CLI:
@@ -51,6 +46,11 @@ def get_args() -> CLI:
         help="Paths to JSON files containing the configs.",
     )
     parser.add_argument("--pca_on_first_only", action="store_true")
+    parser.add_argument(
+        "--redacted",
+        action="store_true",
+        help="If set, will redact any NDA-sensitive information from the plots."
+    )
     args = parser.parse_args()
     return CLI(**vars(args))
 
@@ -61,15 +61,13 @@ def main():
 
     setup_logging(args)
 
-    all_representations = []
-
-    configs = [
-        DatasetConfig(**json.load(open(config_path, "r")))
+    configs: list[HiddenRepresentationConfig] = [
+        HiddenRepresentationConfig(**json.load(open(config_path, "r")))
         for config_path in args.config_paths
     ]
 
     all_representations = [
-        np.load(config.cls_representations_path) for config in configs
+        np.load(config.cls_representations[0]) for config in configs
     ]
 
     # now do the PCA
@@ -96,13 +94,15 @@ def main():
     plt.grid()
 
     # plot
-    for hidden_repr, color, config in zip(pca_representations, colors, configs):
+    for i, (hidden_repr, color, config) in enumerate(zip(pca_representations, colors, configs)):
         plt.scatter(
             hidden_repr[:, 0],
             hidden_repr[:, 1],
             marker=".",
             alpha=0.5,
-            label=f"{os.path.basename(config.raw_dataset_path).split('.')[0]}",
+            label=f"{os.path.basename(config.source_dataset).split('.')[0]}"
+            if not args.redacted
+            else f"Dataset {i}",
             color=color,
         )  # could also be abstracted away, but for now who cares
 
@@ -135,9 +135,10 @@ def main():
         f"2nd principal component ({pca.explained_variance_ratio_[1] * 100:.2f}% $\sigma^2$)"
     )
     total_variance = pca.explained_variance_ratio_[0] + pca.explained_variance_ratio_[1]
-    plt.title(
-        f"[CLS] embeddings (PCA). customer={args.customer_name}; N={len(all_representations[0])}. {total_variance * 100:.2f}% $\sigma^2$"
-    )
+    title = f"[CLS] embeddings (PCA); N={len(all_representations[0])}. {total_variance * 100:.2f}% $\sigma^2$"
+    if not args.redacted:
+        title += f"; customer = ({args.customer_name})"
+    plt.title(title)
 
     plt.legend()
     plt.savefig(args.save_path)

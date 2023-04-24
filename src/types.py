@@ -14,6 +14,7 @@ class HiddenRepresentationConfig:
     source_dataset: str
     processed_datasets: list[str]
     cls_representations: list[str]
+    model_name_or_path: str
 
 
 @dataclass

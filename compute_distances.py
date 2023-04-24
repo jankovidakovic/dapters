@@ -32,6 +32,11 @@ def main():
         type=str,
         help="Path to which metrics will be saved."
     )
+    parser.add_argument(
+        "--redacted",
+        action="store_true",
+        help="If set, will censor out any NDA-sensitive information from the plots."
+    )
 
     args = parser.parse_args()
     setup_logging(args)
@@ -56,18 +61,28 @@ def main():
     # compute dummy pairwise distances
     distances = {}
 
-    for source, target in itertools.combinations(range(len(domain_collection)), 2):
-        key = f"({domain_collection[source].name}, {domain_collection[target].name})"
-        distances[key] = compute_pairwise_distances(
-            domain_collection,
-            source=source,
-            target=target
-        )
+    for source in range(len(domain_collection)):
+        for target in range(len(domain_collection)):
+            if source == target:
+                continue
+            if args.redacted:
+                key = f"({source}, {target})"
+            else:
+                key = f"({domain_collection[source].name}, {domain_collection[target].name})"
+            distances[key] = compute_pairwise_distances(
+                domain_collection,
+                source=source,
+                target=target
+            )
 
     distances_to_joint_centroid = {}
 
-    for domain in domain_collection:
-        distances_to_joint_centroid[domain.name] = {
+    for i, domain in enumerate(domain_collection):
+        if args.redacted:
+            key = f"Dataset {i}"
+        else:
+            key = domain.name
+        distances_to_joint_centroid[key] = {
             "euclidean": euclidean_distance(domain.centroid, domain_collection.joint_centroid),
             "mahalanobis": mahalanobis(
                 domain.centroid,
