@@ -70,8 +70,8 @@ def train(
         train_dataloader: DataLoader,
         eval_dataloader: DataLoader,
         epochs: int,
-        eval_steps: int,  # does it even make sense to decouple this?
-        save_steps: int,
+        # eval_steps: int,  # does it even make sense to decouple this?
+        # save_steps: int,
         output_dir: str,
         logging_steps: int,
         do_evaluate: Callable[[nn.Module, DataLoader], dict[str, float]],
@@ -121,51 +121,85 @@ def train(
                     f"Epoch = {epoch} (LR = {scheduler.get_last_lr()[-1]:.8f}; loss = {loss.item():.4f})"
                 )
 
-            if global_step % eval_steps == 0:
-                # evaluate
-                metrics = do_evaluate(model, eval_dataloader)
-
-                logger.info(f"[GLOBAL_STEP = {global_step}] {pformat(metrics)}")
-                mlflow.log_metrics(
-                    metrics=metrics,
-                    step=global_step
-                )
-
-                # step 1 -> extract metric
-                current_metric_value = metrics[metric_for_best_model]
-                if not is_improved(
-                    current_metric_value,
-                    best_metric_value,  # noqa
-                    greater_is_better
-                ):
-                    early_stopping_step += 1  # noqa
-                    if early_stopping_step == early_stopping_patience:
-                        # early stopping
-                        logger.warning(f"Early stopping patience has reached the critical threshold of "
-                                       f"{early_stopping_patience}. Stopping the run.")
-                        return
-                else:
-                    logger.warning(f"""Resetting early stopping patience based on {metric_for_best_model}.
-                                   Current value: {current_metric_value}
-                                   Best_value: {best_metric_value}""")
-                    early_stopping_step = 0
-                    best_metric_value = current_metric_value
-
-
             if global_step % logging_steps == 0:
                 # log loss
                 mlflow.log_metric(key="train_loss", value=loss.item(), step=global_step)
                 # TODO - log average loss instead of current loss
 
-            if global_step % save_steps == 0:
-                save_checkpoint(
-                    model=model,  # noqa
-                    output_dir=output_dir,
-                    global_step=global_step,
-                    tokenizer=tokenizer
-                )
 
-            # I mean, technically this works, right?
+        # save checkpoint at the end of the epoch
+        save_checkpoint(
+            model=model,  # noqa
+            output_dir=output_dir,
+            global_step=global_step,
+            tokenizer=tokenizer
+        )
+
+        metrics = do_evaluate(model, eval_dataloader)
+
+        logger.info(f"[GLOBAL_STEP = {global_step}] {pformat(metrics)}")
+        mlflow.log_metrics(
+            metrics=metrics,
+            step=global_step
+        )
+
+        # step 1 -> extract metric
+        if early_stopping_patience:
+            current_metric_value = metrics[metric_for_best_model]
+            if not is_improved(
+                current_metric_value,
+                best_metric_value,  # noqa
+                greater_is_better
+            ):
+                early_stopping_step += 1  # noqa
+                if early_stopping_step == early_stopping_patience:
+                    # early stopping
+                    logger.warning(f"Early stopping patience has reached the critical threshold of "
+                                   f"{early_stopping_patience}. Stopping the run.")
+                    return
+            else:
+                logger.warning(f"""Resetting early stopping patience based on {metric_for_best_model}.
+                               Current value: {current_metric_value}
+                               Best_value: {best_metric_value}""")
+                early_stopping_step = 0
+                best_metric_value = current_metric_value
+
+
+def eval_loss_only(
+        loss_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
+) -> Callable[[nn.Module, DataLoader], dict[str, float]]:
+    def evaluate(
+            model: nn.Module,
+            eval_dataloader: DataLoader
+    ) -> dict[str, float]:
+        model.eval()  # this would be prettier as a context manager, but whatever
+
+        # initialize tensors for predictions and references
+        eval_size = len(eval_dataloader.dataset)  # noqa
+        logits_all = torch.empty(eval_size, 33, device="cpu", dtype=torch.float32)
+        references_all = torch.empty(eval_size, 33, device="cpu", dtype=torch.float32)
+
+        with torch.no_grad():
+            for i, batch in tqdm(enumerate(eval_dataloader), total=len(eval_dataloader), desc="Validation"):
+                set_device(batch, model.device)
+                output = model(**batch)
+                references = batch["labels"]
+
+                batch_slice = slice(i * eval_dataloader.batch_size, (i + 1) * eval_dataloader.batch_size)
+                logits_all[batch_slice] = output["logits"].detach().cpu()
+                references_all[batch_slice] = references.detach().cpu()
+
+        # compute loss
+
+        metrics = {
+            "eval_loss": loss_fn(logits_all, references_all).item()
+        }
+
+        model.train()
+
+        return metrics
+
+    return evaluate
 
 
 def evaluate_finetuning(
@@ -258,7 +292,7 @@ def evaluate_pretraining():
 
         metrics = {
             "eval_loss": np.mean(losses)
-        }
+        }  # this isnt really correct tho
 
         model.train()
         return metrics

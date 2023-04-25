@@ -8,7 +8,8 @@ import os
 import numpy as np
 import pandas as pd
 import torch
-from torch import nn, nn as nn
+from torch import nn as nn
+import torch.nn.functional as F
 from torch.optim import AdamW, Optimizer
 from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader
@@ -285,3 +286,10 @@ def get_domain_from_config(
         cluster_ids=cluster_ids,
         name=config.name
     )
+
+
+def mean_binary_cross_entropy(
+        input: torch.Tensor,
+        target: torch.Tensor
+):
+    return F.binary_cross_entropy_with_logits(input, target, reduction="mean")

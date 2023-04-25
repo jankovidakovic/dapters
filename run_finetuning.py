@@ -1,5 +1,4 @@
 import logging
-from functools import partial
 
 import pandas as pd
 import torch
@@ -14,7 +13,7 @@ from src.cli.finetuning import FineTuningArguments, parse_args
 from src.preprocess.steps import multihot_to_list, to_hf_dataset, hf_map, convert_to_torch, sequence_columns
 from src.trainer import train, fine_tuning_loss, eval_loss_only
 from src.utils import setup_logging, get_labels, get_tokenization_fn, setup_optimizers, maybe_tf32, get_tokenizer, \
-    pipeline, get_label_converter
+    pipeline, mean_binary_cross_entropy
 
 import mlflow
 
@@ -69,8 +68,10 @@ def main():
         args.pretrained_model_name_or_path,
         num_labels=len(labels),
         cache_dir=args.cache_dir,
+        problem_type="multi_label_classification"
     )
-    model = torch.compile(model).to(args.device)  # noqa
+    model = torch.compile(model)
+    model = model.to(args.device)
     # TODO - look into torch.compile options
 
     logger.info(f"Model loaded successfully on device: {model.device}")
@@ -102,16 +103,11 @@ def main():
         train_dataloader=train_dataloader,
         eval_dataloader=eval_dataloader,
         epochs=args.epochs,
-        eval_steps=args.eval_steps,
         logging_steps=args.logging_steps,
-        save_steps=args.save_steps,
         output_dir=args.output_dir,
         max_grad_norm=args.max_grad_norm,
-        do_evaluate=evaluate_finetuning(evaluation_threshold=args.evaluation_threshold),
-        get_loss=fine_tuning_loss(loss_fn=partial(
-            F.binary_cross_entropy_with_logits,
-            reduction="mean"
-        )),
+        do_evaluate=eval_loss_only(loss_fn=mean_binary_cross_entropy),
+        get_loss=fine_tuning_loss(loss_fn=mean_binary_cross_entropy),
         early_stopping_patience=args.early_stopping_patience,
         metric_for_best_model=args.metric_for_best_model,
         greater_is_better=args.greater_is_better,
