@@ -8,6 +8,7 @@ class ConfigurationArguments:
     use_tf32: bool
     random_seed: int
     mlflow_experiment: str
+    mlflow_tracking_uri: str
     log_path: str
     metrics_path: str
     output_dir: str
@@ -67,6 +68,13 @@ def add_configuration_args(parser: ArgumentParser):
         default="./output/test",
         help="The output directory where the model predictions and "
              "checkpoints will be written."
+    )
+
+    group.add_argument(
+        "--mlflow_tracking_uri",
+        type=str,
+        default="http://localhost:34567",
+        help="MLFlow tracking URI. Defaults to http://localhost:34567"
     )
 
     return parser

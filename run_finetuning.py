@@ -82,7 +82,7 @@ def main():
     )   # TODO - dataloader was an IterableDataset, we wouldnt have len -> fix
 
     # set up mlflow
-    mlflow.set_tracking_uri("http://localhost:34567")
+    mlflow.set_tracking_uri(args.mlflow_tracking_uri)
     mlflow.set_experiment(args.mlflow_experiment)
 
     mlflow.log_params(vars(args))
