@@ -5,7 +5,6 @@ from dataclasses import dataclass
 class DataArguments:
     train_dataset_path: str
     eval_dataset_path: str
-    preprocessing: str
     message_column: str
 
 
@@ -18,14 +17,6 @@ def add_data_args(parser):
     group.add_argument(
         "--eval_dataset_path", type=str, help="Filesystem path to the evaluation dataset."
     )  # this is actually the "early stopping" split.
-
-
-    group.add_argument(
-        "--preprocessing",
-        type=str,
-        help="Name of the preprocessing method to use. See src/preprocess for available methods."
-
-    )
 
     group.add_argument(
         "--message_column",

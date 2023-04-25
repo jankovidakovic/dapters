@@ -3,7 +3,7 @@ from functools import partial
 
 import pandas as pd
 import torch
-import torch.nn.functional as F
+from pandas import DataFrame
 from transformers import (
     set_seed,
     AutoModelForSequenceClassification,
@@ -11,8 +11,8 @@ from transformers import (
 
 from src.data import setup_dataloaders
 from src.cli.finetuning import FineTuningArguments, parse_args
-from src.preprocess import fine_tuning_pipeline
-from src.trainer import train, evaluate_finetuning, fine_tuning_loss
+from src.preprocess.steps import multihot_to_list, to_hf_dataset, hf_map, convert_to_torch, sequence_columns
+from src.trainer import train, fine_tuning_loss, eval_loss_only
 from src.utils import setup_logging, get_labels, get_tokenization_fn, setup_optimizers, maybe_tf32, get_tokenizer, \
     pipeline, get_label_converter
 
@@ -42,12 +42,19 @@ def main():
 
     do_preprocess = pipeline(
         pd.read_csv,
-        fine_tuning_pipeline(
-            initial_preprocessing=args.preprocessing,
-            tokenizing_fn=do_tokenize,
-            label_converter=get_label_converter(labels)
-        )
+        DataFrame.dropna,
+        multihot_to_list(
+            label_columns=labels,
+            result_column="labels"
+        ),
+        to_hf_dataset,
+        hf_map(do_tokenize, batched=True),
+        convert_to_torch(columns=sequence_columns)
     )
+
+    # okay we obviously didnt pass labels as multihot encoding, but as a list
+
+    # we need to remove evaluation
 
     train_dataset = do_preprocess(args.train_dataset_path)
     eval_dataset = do_preprocess(args.eval_dataset_path)

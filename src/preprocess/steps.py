@@ -19,6 +19,14 @@ def deduplication(subset: str | list[str]):
     return apply
 
 
+def multihot_to_list(label_columns: list[str], result_column: str):
+    def apply(df):
+        logger.warning(f"Converting multihot columns to list: {label_columns}")
+        df[result_column] = df[label_columns].values.astype(float).tolist()
+        return df
+    return apply
+
+
 def drop(columns: list[str]):
     def apply(df):
         logger.warning(f"Dropping columns: {columns}")
