@@ -10,7 +10,6 @@ class ConfigurationArguments:
     mlflow_experiment: str
     mlflow_tracking_uri: str
     log_path: str
-    metrics_path: str
     output_dir: str
 
 
@@ -51,13 +50,6 @@ def add_configuration_args(parser: ArgumentParser):
         type=str,
         default="./run.log",
         help="Path to the log file. Defaults to ./run.log."
-    )
-
-    group.add_argument(
-        "--metrics_path",
-        type=str,
-        default="./metrics.json",
-        help="Path to where the metrics will be saved. Defaults to ./metrics.json."
     )
 
     # directories relevant for IO
