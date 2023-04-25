@@ -91,7 +91,13 @@ def main():
 
     # set up mlflow
     mlflow.set_tracking_uri(args.mlflow_tracking_uri)
-    mlflow.set_experiment(args.mlflow_experiment)
+    mlflow_experiment = mlflow.set_experiment(args.mlflow_experiment)
+
+    mlflow.start_run(
+        experiment_id=mlflow_experiment.experiment_id,
+        run_name=args.mlflow_run_name,
+        description=args.mlflow_run_description
+    )
 
     mlflow.log_params(vars(args))
 

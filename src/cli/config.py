@@ -9,6 +9,8 @@ class ConfigurationArguments:
     random_seed: int
     mlflow_experiment: str
     mlflow_tracking_uri: str
+    mlflow_run_name: str
+    mlflow_run_description: str
     log_path: str
     output_dir: str
 
@@ -67,6 +69,20 @@ def add_configuration_args(parser: ArgumentParser):
         type=str,
         default="http://localhost:34567",
         help="MLFlow tracking URI. Defaults to http://localhost:34567"
+    )
+
+    group.add_argument(
+        "--mlflow_run_name",
+        type=str,
+        default=None,
+        help="MLFlow run name. Defaults to an empty string."
+    )
+
+    group.add_argument(
+        "--mlflow_run_description",
+        type=str,
+        default="Generic MLFlow run description.",
+        help="MLFlow run description. Defaults to an empty string."
     )
 
     return parser
