@@ -214,11 +214,12 @@ def eval_loss_only(
 
 def evaluate_finetuning(
         evaluation_threshold: float = 0.75,
-        loss_fn = binary_cross_entropy_with_logits
-) -> Callable[[nn.Module, DataLoader], dict[str, float]]:
+        loss_fn = binary_cross_entropy_with_logits,
+) -> Callable[[nn.Module, DataLoader, str], dict[str, float]]:
     def evaluate(
         model: nn.Module,
         eval_dataloader: DataLoader,
+        metrics_prefix: str = "eval"
     ) -> dict[str, float]:
 
         # we need some metrics here
@@ -244,7 +245,7 @@ def evaluate_finetuning(
         # compute loss
 
         metrics = {
-            "eval_loss": loss_fn(
+            f"{metrics_prefix}_loss": loss_fn(
                 input=logits_all,
                 target=references_all,
                 reduction="mean"
@@ -264,7 +265,7 @@ def evaluate_finetuning(
             )[:-1]
 
             for name, value in zip(["precision", "recall", "f1"], prf):
-                metrics[f"{average}-{name}"] = value
+                metrics[f"{metrics_prefix}_{average}-{name}"] = value
 
         model.train()
 
