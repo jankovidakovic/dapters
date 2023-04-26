@@ -11,9 +11,9 @@ from torch.nn.utils import clip_grad_norm_
 from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformers import PreTrainedTokenizer, BatchEncoding
+from transformers import PreTrainedTokenizer, BatchEncoding, RobertaModel
 
-from torch.nn.functional import binary_cross_entropy_with_logits
+from torch.nn.functional import binary_cross_entropy_with_logits, cross_entropy
 from transformers.modeling_outputs import SequenceClassifierOutput, MaskedLMOutput
 from transformers.utils import ModelOutput
 
@@ -269,30 +269,45 @@ def evaluate_pretraining():
             model: nn.Module,
             eval_dataloader: DataLoader,
     ):
-        model.eval()  # this would be prettier as a context manager, but whatever
+        model.eval()
 
         # initialize tensors for predictions and references
         eval_size = len(eval_dataloader.dataset)  # noqa
-        # logits_all = torch.empty(eval_size, 33, device="cpu", dtype=torch.float32)
-        # references_all = torch.empty(eval_size, 33, device="cpu", dtype=torch.float32)
 
-        losses = []
+        predictions = torch.empty(
+            eval_size,
+            64,  # sequence length
+            model.config.vocab_size,
+            device="cpu",
+            dtype=torch.float32
+        )
+
+        references = torch.empty(
+            eval_size,
+            64,  # sequence length
+            device="cpu",
+            dtype=torch.float32
+        )
 
         with torch.no_grad():
             for i, batch in tqdm(enumerate(eval_dataloader), total=len(eval_dataloader), desc="Validation"):
                 set_device(batch, model.device)
                 output: MaskedLMOutput = model(**batch)
-                # references = batch["labels"]
-                # batch_slice = slice(i * eval_dataloader.batch_size, (i + 1) * eval_dataloader.batch_size)
-                # logits_all[batch_slice] = output.logits.detach().cpu()
-                # references_all[batch_slice] = references.detach().cpu()
-                losses.append(output.loss.item())
 
-        # compute loss
+                batch_slice = slice(i * eval_dataloader.batch_size, (i + 1) * eval_dataloader.batch_size)
+                predictions[batch_slice, :, :] = output.logits.detach().cpu()
+                references[batch_slice, :] = batch["labels"].detach().cpu()
+
+        # compute accuracy
+        eval_loss = cross_entropy(
+            input=predictions.view(-1, model.config.vocab_size),
+            target=references.view(-1),
+            reduction="mean"
+        )
 
         metrics = {
-            "eval_loss": np.mean(losses)
-        }  # this isnt really correct tho
+            "eval_loss": eval_loss
+        }
 
         model.train()
         return metrics
