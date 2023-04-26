@@ -7,7 +7,7 @@ from typing import Optional
 class TrainingArguments:
     per_device_train_batch_size: int
     per_device_eval_batch_size: int
-    max_grad_norm: float
+    max_grad_norm: Optional[float]
     dataloader_num_workers: int
     epochs: int
     eval_steps: int
@@ -42,11 +42,11 @@ def add_training_args(parser: ArgumentParser):
 
     group.add_argument(
         "--max_grad_norm",
-        default=1.0,
+        default=None,
         type=float,
         help="Maximum value of L2-norm of the gradients during optimization. Gradients "
-             "with norm greater than this value will be clipped. Defaults to 1.0."
-    )  # TODO!!!!!!!!!!!!!!!!
+             "with norm greater than this value will be clipped. Defaults to None"
+    )
 
     group.add_argument(
         "--dataloader_num_workers",

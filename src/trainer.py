@@ -76,7 +76,7 @@ def train(
         logging_steps: int,
         do_evaluate: Callable[[nn.Module, DataLoader], dict[str, float]],
         get_loss: Callable[[BatchEncoding, ModelOutput], torch.Tensor],
-        max_grad_norm: float = 1.0,
+        max_grad_norm: Optional[float] = None,
         early_stopping_patience: Optional[int] = None,
         metric_for_best_model: str = "macro-f1",
         greater_is_better: bool = True,
@@ -94,6 +94,13 @@ def train(
         if greater_is_better:
             best_metric_value *= -1
         early_stopping_step = 0
+
+    if max_grad_norm:
+        logger.warning(f"Gradient clipping is enabled with max norm of {max_grad_norm}.")
+
+    if gradient_accumulation_steps > 1:
+        logger.warning(f"Gradient accumulation is enabled with {gradient_accumulation_steps} steps.")
+
 
     for epoch in range(1, epochs + 1):
         epoch_step = 0
@@ -113,7 +120,10 @@ def train(
             if (epoch_step % gradient_accumulation_steps == 0
                 or epoch_step == len(train_dataloader)
             ):
-                clip_grad_norm_(model.parameters(), max_grad_norm)
+                # clip gradients if enabled
+                if max_grad_norm:
+                    clip_grad_norm_(model.parameters(), max_grad_norm)
+
                 optimizer.step()
                 scheduler.step()  # updates the learning rate
                 optimizer.zero_grad()
