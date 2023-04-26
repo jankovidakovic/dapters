@@ -2,12 +2,13 @@ import logging
 
 import mlflow
 import pandas as pd
+from pandas import DataFrame
 from transformers import set_seed, DataCollatorForLanguageModeling, AutoModelForMaskedLM
 import torch
 
 from src.cli.pretraining import PreTrainingArguments, parse_args
 from src.data import setup_dataloaders
-from src.preprocess import pretraining_pipeline
+from src.preprocess import pretraining_pipeline, hf_map, to_hf_dataset, sequence_columns, convert_to_torch
 from src.trainer import train, evaluate_pretraining, pretraining_loss
 from src.utils import setup_logging, maybe_tf32, get_tokenizer, get_tokenization_fn, pipeline, setup_optimizers
 
@@ -33,10 +34,11 @@ def main():
 
     do_preprocess = pipeline(
         pd.read_csv,
-        pretraining_pipeline(
-            initial_preprocessing=args.preprocessing,
-            tokenizing_fn=do_tokenize,
-    ))
+        DataFrame.dropna,
+        to_hf_dataset,
+        hf_map(do_tokenize, batched=True),
+        convert_to_torch(columns=sequence_columns)
+    )
 
     train_dataset = do_preprocess(args.train_dataset_path)
     eval_dataset = do_preprocess(args.eval_dataset_path)
@@ -77,8 +79,15 @@ def main():
         scheduler_type=args.scheduler_type
     )   # TODO - dataloader was an IterableDataset, we wouldnt have len -> fix
 
-    mlflow.set_tracking_uri("http://localhost:34567")
-    mlflow.set_experiment(args.mlflow_experiment)
+    # set up mlflow
+    mlflow.set_tracking_uri(args.mlflow_tracking_uri)
+    mlflow_experiment = mlflow.set_experiment(args.mlflow_experiment)
+
+    mlflow.start_run(
+        experiment_id=mlflow_experiment.experiment_id,
+        run_name=args.mlflow_run_name,
+        description=args.mlflow_run_description
+    )
 
     mlflow.log_params(vars(args))
 
@@ -90,14 +99,14 @@ def main():
         train_dataloader=train_dataloader,
         eval_dataloader=eval_dataloader,
         epochs=args.epochs,
-        eval_steps=args.eval_steps,
+        # eval_steps=args.eval_steps,
         logging_steps=args.logging_steps,
-        save_steps=args.save_steps,
+        # save_steps=args.save_steps,
         output_dir=args.output_dir,
         max_grad_norm=args.max_grad_norm,
-        early_stopping_patience=args.early_stopping_patience,
-        metric_for_best_model=args.metric_for_best_model,
-        greater_is_better=args.greater_is_better,
+        # early_stopping_patience=args.early_stopping_patience,
+        # metric_for_best_model=args.metric_for_best_model,
+        # greater_is_better=args.greater_is_better,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         do_evaluate=evaluate_pretraining(),
         get_loss=pretraining_loss(),
