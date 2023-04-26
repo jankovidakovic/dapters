@@ -296,7 +296,7 @@ def evaluate_pretraining():
             eval_size,
             64,  # sequence length
             device="cpu",
-            dtype=torch.float32
+            dtype=torch.int64  # why the fuck do you want long
         )
 
         with torch.no_grad():
@@ -316,7 +316,7 @@ def evaluate_pretraining():
         )
 
         metrics = {
-            "eval_loss": eval_loss
+            "eval_loss": eval_loss.item()
         }
 
         model.train()

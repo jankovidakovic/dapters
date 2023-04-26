@@ -30,6 +30,7 @@ def main():
         truncation=True,
         max_length=args.max_length,
         return_special_tokens_mask=True,
+        message_column=args.message_column
     )  # would be cool to abstract this also
 
     do_preprocess = pipeline(
@@ -60,6 +61,7 @@ def main():
         args.pretrained_model_name_or_path,
         cache_dir=args.cache_dir,
     )
+    # we start from the model which is already pretrained
 
     # compile model
     model: PreTrainedModel = torch.compile(model).to(args.device)  # noqa
