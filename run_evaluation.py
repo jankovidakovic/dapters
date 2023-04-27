@@ -58,6 +58,7 @@ def get_parser():
     parser.add_argument(
         "--mlflow_tracking_uri",
         type=str,
+        default="http://localhost:34567",
         help="MLFlow tracking URI."
     )
 
@@ -152,7 +153,7 @@ def main():
     source_metrics = do_evaluate(
         model=model,
         eval_dataloader=source_dataloader,
-        metric_prefix="source"
+        metrics_prefix="source"
     )
 
     logger.warning(f"Source evaluation finished.")
@@ -163,10 +164,10 @@ def main():
     target_metrics = do_evaluate(
         model=model,
         eval_dataloader=target_dataloader,
-        metric_prefix="target"
+        metrics_prefix="target"
     )
 
-    logger.warning(f"Source evaluation finished.")
+    logger.warning(f"Target evaluation finished.")
     logger.warning(pformat(target_metrics))
 
     mlflow.log_metrics(source_metrics)
