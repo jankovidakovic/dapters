@@ -3,6 +3,7 @@ import logging
 import mlflow
 import pandas as pd
 from pandas import DataFrame
+from torch.utils.data import DataLoader
 from transformers import set_seed, DataCollatorForLanguageModeling, AutoModelForMaskedLM
 import torch
 
@@ -41,14 +42,16 @@ def main():
         convert_to_torch(columns=sequence_columns)
     )
 
-    train_dataset = do_preprocess(args.train_dataset_path)
-    eval_dataset = do_preprocess(args.eval_dataset_path)
+    dataset = do_preprocess(args.train_dataset_path)
+    # eval_dataset = do_preprocess(args.eval_dataset_path)
 
     # seems to be working!!
-    train_dataloader, eval_dataloader = setup_dataloaders(
-        train_dataset,
-        eval_dataset,
-        args,
+    # train_dataloader, eval_dataloader = setup_dataloaders(
+    dataloader = DataLoader(
+        dataset,
+        batch_size=args.per_device_train_batch_size,
+        pin_memory=True,
+        shuffle=True,
         collate_fn=DataCollatorForLanguageModeling(
             tokenizer=tokenizer,
             mlm=True,
@@ -77,7 +80,7 @@ def main():
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         warmup_percentage=args.warmup_percentage,
         epochs=args.epochs,
-        epoch_steps=len(train_dataloader),
+        epoch_steps=len(dataloader),
         scheduler_type=args.scheduler_type
     )   # TODO - dataloader was an IterableDataset, we wouldnt have len -> fix
 
@@ -98,8 +101,7 @@ def main():
         tokenizer=tokenizer,
         optimizer=optimizer,
         scheduler=scheduler,
-        train_dataloader=train_dataloader,
-        eval_dataloader=eval_dataloader,
+        train_dataloader=dataloader,
         epochs=args.epochs,
         # eval_steps=args.eval_steps,
         logging_steps=args.logging_steps,
@@ -110,7 +112,6 @@ def main():
         # metric_for_best_model=args.metric_for_best_model,
         # greater_is_better=args.greater_is_better,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
-        do_evaluate=evaluate_pretraining(),
         get_loss=pretraining_loss(),
     )
 

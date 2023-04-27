@@ -68,19 +68,19 @@ def train(
         optimizer: torch.optim.Optimizer,
         scheduler: LRScheduler,
         train_dataloader: DataLoader,
-        eval_dataloader: DataLoader,
         epochs: int,
         # eval_steps: int,  # does it even make sense to decouple this?
         # save_steps: int,
         output_dir: str,
         logging_steps: int,
-        do_evaluate: Callable[[nn.Module, DataLoader], dict[str, float]],
         get_loss: Callable[[BatchEncoding, ModelOutput], torch.Tensor],
         max_grad_norm: Optional[float] = None,
         early_stopping_patience: Optional[int] = None,
         metric_for_best_model: str = "macro-f1",
         greater_is_better: bool = True,
         gradient_accumulation_steps: int = 1,
+        eval_dataloader: Optional[DataLoader] = None,
+        do_evaluate: Optional[Callable[[nn.Module, DataLoader], dict[str, float]]] = None,
 ):
     global_step = 0
     early_stopping_step: Optional[int]
@@ -145,34 +145,37 @@ def train(
             tokenizer=tokenizer
         )
 
-        metrics = do_evaluate(model, eval_dataloader)
+        if eval_dataloader:
+            logger.warning(F"Evaluating...")
+            metrics = do_evaluate(model, eval_dataloader)
+            logger.info(f"[GLOBAL_STEP = {global_step}] {pformat(metrics)}")
+            mlflow.log_metrics(
+                metrics=metrics,
+                step=global_step
+            )
 
-        logger.info(f"[GLOBAL_STEP = {global_step}] {pformat(metrics)}")
-        mlflow.log_metrics(
-            metrics=metrics,
-            step=global_step
-        )
+            # do early stopping only if theres eval dataloader
 
-        # step 1 -> extract metric
-        if early_stopping_patience:
-            current_metric_value = metrics[metric_for_best_model]
-            if not is_improved(
-                current_metric_value,
-                best_metric_value,  # noqa
-                greater_is_better
-            ):
-                early_stopping_step += 1  # noqa
-                if early_stopping_step == early_stopping_patience:
-                    # early stopping
-                    logger.warning(f"Early stopping patience has reached the critical threshold of "
-                                   f"{early_stopping_patience}. Stopping the run.")
-                    return
-            else:
-                logger.warning(f"""Resetting early stopping patience based on {metric_for_best_model}.
-                               Current value: {current_metric_value}
-                               Best_value: {best_metric_value}""")
-                early_stopping_step = 0
-                best_metric_value = current_metric_value
+            # step 1 -> extract metric
+            if early_stopping_patience:
+                current_metric_value = metrics[metric_for_best_model]
+                if not is_improved(
+                    current_metric_value,
+                    best_metric_value,  # noqa
+                    greater_is_better
+                ):
+                    early_stopping_step += 1  # noqa
+                    if early_stopping_step == early_stopping_patience:
+                        # early stopping
+                        logger.warning(f"Early stopping patience has reached the critical threshold of "
+                                       f"{early_stopping_patience}. Stopping the run.")
+                        return
+                else:
+                    logger.warning(f"""Resetting early stopping patience based on {metric_for_best_model}.
+                                   Current value: {current_metric_value}
+                                   Best_value: {best_metric_value}""")
+                    early_stopping_step = 0
+                    best_metric_value = current_metric_value
 
 
 def eval_loss_only(
