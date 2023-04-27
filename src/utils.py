@@ -5,6 +5,7 @@ from typing import Callable
 import logging
 import os
 
+import mlflow
 import numpy as np
 import pandas as pd
 import torch
@@ -143,13 +144,17 @@ def save_checkpoint(
         global_step: int,
         tokenizer: PreTrainedTokenizer,
 ):
-    output_dir = os.path.join(output_dir, f"checkpoint-{global_step}")  # moze
+    checkpoint_name = f"checkpoint-{global_step}"
+    output_dir = os.path.join(output_dir, checkpoint_name)  # moze
+    output_dir = os.path.abspath(output_dir)
     os.makedirs(output_dir, exist_ok=True)
     model.save_pretrained(output_dir)
-    logger.info(f"Saved model checkpoint to {os.path.abspath(output_dir)}")
+    logger.info(f"Saved model checkpoint to {output_dir}")
 
     tokenizer.save_pretrained(output_dir)
-    logger.warning(f"Saved tokenizer to {os.path.abspath(output_dir)}")
+    logger.warning(f"Saved tokenizer to {output_dir}")
+
+    mlflow.log_artifacts(output_dir, artifact_path=checkpoint_name)
 
 
 def dynamic_import(
