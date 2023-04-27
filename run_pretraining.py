@@ -84,17 +84,18 @@ def main():
         scheduler_type=args.scheduler_type
     )   # TODO - dataloader was an IterableDataset, we wouldnt have len -> fix
 
-    # set up mlflow
-    mlflow.set_tracking_uri(args.mlflow_tracking_uri)
-    mlflow_experiment = mlflow.set_experiment(args.mlflow_experiment)
+    if args.mlflow_experiment:
+        # set up mlflow
+        mlflow.set_tracking_uri(args.mlflow_tracking_uri)
+        mlflow_experiment = mlflow.set_experiment(args.mlflow_experiment)
 
-    mlflow.start_run(
-        experiment_id=mlflow_experiment.experiment_id,
-        run_name=args.mlflow_run_name,
-        description=args.mlflow_run_description
-    )
+        mlflow.start_run(
+            experiment_id=mlflow_experiment.experiment_id,
+            run_name=args.mlflow_run_name,
+            description=args.mlflow_run_description
+        )
 
-    mlflow.log_params(vars(args))
+        mlflow.log_params(vars(args))
 
     train(
         model=model,
@@ -117,7 +118,8 @@ def main():
 
     logger.warning("Training complete.")
 
-    mlflow.end_run()
+    if args.mlflow_experiment:
+        mlflow.end_run()
 
 
 if __name__ == "__main__":

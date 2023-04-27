@@ -154,7 +154,7 @@ def save_checkpoint(
     tokenizer.save_pretrained(output_dir)
     logger.warning(f"Saved tokenizer to {output_dir}")
 
-    mlflow.log_artifacts(output_dir, artifact_path=checkpoint_name)
+    # mlflow.log_artifacts(output_dir, artifact_path=checkpoint_name)
 
 
 def dynamic_import(

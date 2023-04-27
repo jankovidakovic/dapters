@@ -131,9 +131,9 @@ def train(
                     f"Epoch = {epoch} (LR = {scheduler.get_last_lr()[-1]:.8f}; loss = {loss.item():.4f})"
                 )
 
-            if global_step % logging_steps == 0:
+            # if global_step % logging_steps == 0:
                 # log loss
-                mlflow.log_metric(key="train_loss", value=loss.item(), step=global_step)
+                # mlflow.log_metric(key="train_loss", value=loss.item(), step=global_step)
                 # TODO - log average loss instead of current loss
 
 

@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -7,10 +8,10 @@ class ConfigurationArguments:
     device: str
     use_tf32: bool
     random_seed: int
-    mlflow_experiment: str
-    mlflow_tracking_uri: str
-    mlflow_run_name: str
-    mlflow_run_description: str
+    mlflow_experiment: Optional[str]
+    mlflow_tracking_uri: Optional[str]
+    mlflow_run_name: Optional[str]
+    mlflow_run_description: Optional[str]
     log_path: str
     output_dir: str
 
