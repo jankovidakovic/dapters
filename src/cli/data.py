@@ -1,10 +1,11 @@
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
 class DataArguments:
     train_dataset_path: str
-    eval_dataset_path: str
+    eval_dataset_path: Optional[str]
     message_column: str
 
 
@@ -15,7 +16,10 @@ def add_data_args(parser):
     )
 
     group.add_argument(
-        "--eval_dataset_path", type=str, help="Filesystem path to the evaluation dataset."
+        "--eval_dataset_path",
+        type=str,
+        help="Filesystem path to the evaluation dataset.",
+        default=None
     )  # this is actually the "early stopping" split.
 
     group.add_argument(
