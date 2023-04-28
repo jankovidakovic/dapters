@@ -4,6 +4,7 @@ from typing import Callable, Optional
 
 import numpy as np
 import torch.optim
+from math import ceil
 from sklearn.metrics import precision_recall_fscore_support
 from torch import nn
 from torch.nn.utils import clip_grad_norm_
@@ -136,8 +137,11 @@ def train(
         collate_fn=collate_fn
     )
 
-    assert len(train_dataset) // per_device_train_batch_size == len(train_dataloader), \
-        "Somethings wrong with the calculation of epoch_steps"
+    epoch_steps = ceil(len(train_dataset) / per_device_train_batch_size)
+    if len(train_dataloader) != epoch_steps:
+        logger.warning(f"Epoch steps is {epoch_steps}, but dataloader has {len(train_dataloader)} batches.")
+        raise RuntimeError("ree")
+
 
     for epoch in range(1, epochs + 1):
         epoch_step = 0
@@ -366,6 +370,7 @@ def evaluate_pretraining():
     def do_evaluate(
             model: nn.Module,
             eval_dataloader: DataLoader,
+            prefix: str = "eval"
     ):
         model.eval()
 
@@ -396,14 +401,14 @@ def evaluate_pretraining():
                 predictions[batch_slice, :, :] = output.logits.detach().cpu()
                 references[batch_slice, :] = batch["labels"].detach().cpu()
 
-        eval_loss = cross_entropy(
+        loss = cross_entropy(
             input=predictions.view(-1, model.config.vocab_size),
             target=references.view(-1),
             reduction="mean"
         )
 
         metrics = {
-            "eval_loss": eval_loss.item()
+            f"{prefix}_loss": loss.item()
         }
 
         model.train()

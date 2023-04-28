@@ -1,14 +1,14 @@
 import logging
 
 import pandas as pd
+from math import ceil
 from pandas import DataFrame
-from torch.utils.data import DataLoader
 from transformers import set_seed, DataCollatorForLanguageModeling, AutoModelForMaskedLM
 import torch
 
 from src.cli.pretraining import PreTrainingArguments, parse_args
 from src.preprocess import hf_map, to_hf_dataset, sequence_columns, convert_to_torch
-from src.trainer import train, pretraining_loss
+from src.trainer import train, pretraining_loss, evaluate_pretraining
 from src.utils import setup_logging, maybe_tf32, get_tokenizer, get_tokenization_fn, pipeline, setup_optimizers
 
 logger = logging.getLogger(__name__)
@@ -40,20 +40,8 @@ def main():
         convert_to_torch(columns=sequence_columns)
     )
 
-    dataset = do_preprocess(args.train_dataset_path)
-    # eval_dataset = do_preprocess(args.eval_dataset_path)
-
-    dataloader = DataLoader(
-        dataset,
-        batch_size=args.per_device_train_batch_size,
-        pin_memory=True,
-        shuffle=True,
-        collate_fn=DataCollatorForLanguageModeling(
-            tokenizer=tokenizer,
-            mlm=True,
-            mlm_probability=args.mlm_probability,
-        )
-    )
+    train_dataset = do_preprocess(args.train_dataset_path)
+    eval_dataset = do_preprocess(args.eval_dataset_path)
 
     # initialize model
     model = AutoModelForMaskedLM.from_pretrained(
@@ -67,6 +55,8 @@ def main():
 
     logger.info(f"Model loaded successfully on device: {model.device}")
 
+    epoch_steps = ceil(len(train_dataset) / args.per_device_train_batch_size / args.gradient_accumulation_steps)
+
     # TODO - make configurable
     optimizer, scheduler = setup_optimizers(
         model,
@@ -76,7 +66,7 @@ def main():
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         warmup_percentage=args.warmup_percentage,
         epochs=args.epochs,
-        epoch_steps=len(dataloader),
+        epoch_steps=epoch_steps,
         scheduler_type=args.scheduler_type
     )
 
@@ -103,7 +93,15 @@ def main():
         tokenizer=tokenizer,
         optimizer=optimizer,
         scheduler=scheduler,
-        train_dataloader=dataloader,
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
+        collate_fn=DataCollatorForLanguageModeling(
+            tokenizer=tokenizer,
+            mlm=True,
+            mlm_probability=args.mlm_probability,
+        ),
+        per_device_train_batch_size=args.per_device_train_batch_size,
+        per_device_eval_batch_size=args.per_device_eval_batch_size,
         epochs=args.epochs,
         logging_steps=args.logging_steps,
         save_steps=args.save_steps,
@@ -114,6 +112,7 @@ def main():
         # greater_is_better=args.greater_is_better,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         get_loss=pretraining_loss(),
+        do_evaluate=evaluate_pretraining(),
         use_mlflow=use_mlflow
     )
 

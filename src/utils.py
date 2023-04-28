@@ -203,7 +203,7 @@ def setup_optimizers(
     )
 
     # calculate the warmup steps
-    num_training_steps = epochs * (epoch_steps // gradient_accumulation_steps)
+    num_training_steps = epochs * epoch_steps
     logger.warning(f"Total steps = {num_training_steps}")
     num_warmup_steps = round(warmup_percentage * num_training_steps)
     logger.warning(f"Warmup percentage was set to {warmup_percentage}. "
