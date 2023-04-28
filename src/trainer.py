@@ -22,11 +22,6 @@ from src.utils import save_checkpoint, is_improved, set_device
 logger = logging.getLogger(__name__)
 
 
-# well, we need different trainers for pretraining and finetuning
-# alternatively, we can pass in the evaluation function as an argument
-#   -> sounds better
-
-
 def fine_tuning_loss(
         loss_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
 ):
