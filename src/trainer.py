@@ -81,6 +81,7 @@ def train(
         gradient_accumulation_steps: int = 1,
         eval_dataloader: Optional[DataLoader] = None,
         do_evaluate: Optional[Callable[[nn.Module, DataLoader], dict[str, float]]] = None,
+        num_batches: Optional[int] = None,
 ):
     global_step = 0
     early_stopping_step: Optional[int]
@@ -104,9 +105,10 @@ def train(
 
     for epoch in range(1, epochs + 1):
         epoch_step = 0
+        train_dataloader.dataset.set_epoch(epoch)  # sets the random seed for shuffling
         for i, batch in (pbar := tqdm(
                 enumerate(train_dataloader),
-                total=len(train_dataloader),
+                total=num_batches if num_batches else len(train_dataloader),
                 desc=f"Epoch {epoch}")):
             epoch_step += 1
             global_step += 1

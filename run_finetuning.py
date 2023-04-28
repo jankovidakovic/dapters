@@ -64,14 +64,21 @@ def main():
     # if args.eval_dataset_path:
         # eval_dataset = do_preprocess(args.eval_dataset_path)
 
-    # TODO - IterableDataset = ?
+    data_len = len(dataset)
+    num_batches = data_len // args.per_device_train_batch_size
+
+    dataset = dataset.to_iterable_dataset(num_shards=min(1024, data_len // 1000))
+    dataset = dataset.shuffle(seed=args.random_seed, buffer_size=data_len // 10)
+
+    logger.warning(F"Iterable dataset created!")
+
     # train_dataloader, eval_dataloader = setup_dataloaders(
         # train_dataset, eval_dataset, args
     # )
     dataloader = DataLoader(
         dataset,
         batch_size=args.per_device_train_batch_size,
-        shuffle=True,
+        shuffle=False,   # no shuffle because IterableDataset does the shuffling
         pin_memory=True,
         collate_fn=DefaultDataCollator(return_tensors="pt")
     )
@@ -98,7 +105,7 @@ def main():
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         warmup_percentage=args.warmup_percentage,
         epochs=args.epochs,
-        epoch_steps=len(dataloader),
+        epoch_steps=num_batches,
         scheduler_type=args.scheduler_type
     )   # TODO - dataloader was an IterableDataset, we wouldnt have len -> fix
 
@@ -134,7 +141,7 @@ def main():
 
     logger.warning("Training complete.")
 
-    mlflow.end_run()
+    # mlflow.end_run()
 
 
 if __name__ == "__main__":
