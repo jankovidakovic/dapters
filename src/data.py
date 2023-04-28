@@ -81,7 +81,7 @@ def setup_dataloaders(
         batch_size=args.per_device_train_batch_size,
         num_workers=args.dataloader_num_workers,
         pin_memory=True,
-        shuffle=True,  # TODO
+        shuffle=True,
         collate_fn=collate_fn
     )
 

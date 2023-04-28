@@ -50,9 +50,6 @@ def main():
         convert_to_torch(columns=sequence_columns)
     )
 
-
-    # TODO - make evaluation optional
-
     train_dataset = do_preprocess(args.train_dataset_path)
     eval_dataset = do_preprocess(args.eval_dataset_path)
 
