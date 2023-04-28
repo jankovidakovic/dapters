@@ -10,7 +10,7 @@ from torch.nn.utils import clip_grad_norm_
 from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
-from transformers import PreTrainedTokenizer, BatchEncoding
+from transformers import PreTrainedTokenizer, BatchEncoding, DataCollator
 
 from torch.nn.functional import binary_cross_entropy_with_logits, cross_entropy
 from transformers.modeling_outputs import SequenceClassifierOutput, MaskedLMOutput
@@ -76,8 +76,11 @@ def train(
         greater_is_better: bool = True,
         gradient_accumulation_steps: int = 1,
         do_evaluate: Optional[Callable[[nn.Module, DataLoader], dict[str, float]]] = None,
+        # would be cool if do_evaluate only took in model and dataset
+        # and other parameters (e.g. batch_size) were set by currying
         use_mlflow: bool = False,
         evaluate_on_train: bool = False,
+        collate_fn: Optional[DataCollator] = None
 ):
     global_step = 0
     early_stopping_step: Optional[int]
@@ -109,7 +112,9 @@ def train(
         batch_size=per_device_train_batch_size,
         shuffle=True,
         pin_memory=True,
-        num_workers=32  # hardcoded for now
+        num_workers=32,
+        collate_fn=collate_fn
+        # hardcoded for now
     )
 
     if evaluate_on_train:
@@ -118,7 +123,8 @@ def train(
             batch_size=per_device_eval_batch_size,
             shuffle=False,
             pin_memory=True,
-            num_workers=32
+            num_workers=32,
+            collate_fn=collate_fn
         )
 
     eval_dataloader = DataLoader(
@@ -126,7 +132,8 @@ def train(
         batch_size=per_device_eval_batch_size,
         shuffle=False,
         pin_memory=True,
-        num_workers=32
+        num_workers=32,
+        collate_fn=collate_fn
     )
 
     assert len(train_dataset) // per_device_train_batch_size == len(train_dataloader), \
