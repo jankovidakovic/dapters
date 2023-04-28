@@ -66,7 +66,7 @@ def main():
 
     logger.info(f"Model loaded successfully on device: {model.device}")
 
-    epoch_steps = len(train_dataset) // args.per_device_train_batch_size
+    epoch_steps = len(train_dataset) // args.per_device_train_batch_size // args.gradient_accumulation_steps
 
     optimizer, scheduler = setup_optimizers(
         model,
@@ -93,8 +93,6 @@ def main():
         )
 
         mlflow.log_params(vars(args))
-
-
 
     train(
         model=model,
