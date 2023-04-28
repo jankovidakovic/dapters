@@ -11,7 +11,7 @@ from torch.nn.utils import clip_grad_norm_
 from torch.optim.lr_scheduler import LRScheduler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformers import PreTrainedTokenizer, BatchEncoding, RobertaModel
+from transformers import PreTrainedTokenizer, BatchEncoding
 
 from torch.nn.functional import binary_cross_entropy_with_logits, cross_entropy
 from transformers.modeling_outputs import SequenceClassifierOutput, MaskedLMOutput
