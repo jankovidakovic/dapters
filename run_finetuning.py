@@ -137,6 +137,7 @@ def main():
         metric_for_best_model=args.metric_for_best_model,
         greater_is_better=args.greater_is_better,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
+        num_batches=num_batches,
     )
 
     logger.warning("Training complete.")
