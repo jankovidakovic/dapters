@@ -7,9 +7,8 @@ from transformers import set_seed, DataCollatorForLanguageModeling, AutoModelFor
 import torch
 
 from src.cli.pretraining import PreTrainingArguments, parse_args
-from src.data import setup_dataloaders
-from src.preprocess import pretraining_pipeline, hf_map, to_hf_dataset, sequence_columns, convert_to_torch
-from src.trainer import train, evaluate_pretraining, pretraining_loss
+from src.preprocess import hf_map, to_hf_dataset, sequence_columns, convert_to_torch
+from src.trainer import train, pretraining_loss
 from src.utils import setup_logging, maybe_tf32, get_tokenizer, get_tokenization_fn, pipeline, setup_optimizers
 
 logger = logging.getLogger(__name__)
@@ -44,8 +43,6 @@ def main():
     dataset = do_preprocess(args.train_dataset_path)
     # eval_dataset = do_preprocess(args.eval_dataset_path)
 
-    # seems to be working!!
-    # train_dataloader, eval_dataloader = setup_dataloaders(
     dataloader = DataLoader(
         dataset,
         batch_size=args.per_device_train_batch_size,
@@ -81,7 +78,7 @@ def main():
         epochs=args.epochs,
         epoch_steps=len(dataloader),
         scheduler_type=args.scheduler_type
-    )   # TODO - dataloader was an IterableDataset, we wouldnt have len -> fix
+    )
 
     if args.mlflow_experiment:
         use_mlflow = True
@@ -108,7 +105,6 @@ def main():
         scheduler=scheduler,
         train_dataloader=dataloader,
         epochs=args.epochs,
-        # eval_steps=args.eval_steps,
         logging_steps=args.logging_steps,
         # save_steps=args.save_steps,
         output_dir=args.output_dir,

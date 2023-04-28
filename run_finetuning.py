@@ -50,14 +50,12 @@ def main():
         convert_to_torch(columns=sequence_columns)
     )
 
-    # okay we obviously didnt pass labels as multihot encoding, but as a list
 
-    # we need to remove evaluation
+    # TODO - make evaluation optional
 
     train_dataset = do_preprocess(args.train_dataset_path)
     eval_dataset = do_preprocess(args.eval_dataset_path)
 
-    # TODO - IterableDataset = ?
     train_dataloader, eval_dataloader = setup_dataloaders(
         train_dataset, eval_dataset, args
     )
@@ -75,7 +73,6 @@ def main():
 
     logger.info(f"Model loaded successfully on device: {model.device}")
 
-    # TODO - make configurable
     optimizer, scheduler = setup_optimizers(
         model,
         lr=args.learning_rate,
@@ -86,7 +83,7 @@ def main():
         epochs=args.epochs,
         epoch_steps=len(train_dataloader),
         scheduler_type=args.scheduler_type
-    )   # TODO - dataloader was an IterableDataset, we wouldnt have len -> fix
+    )
 
     # set up mlflow
     if use_mlflow := (args.mlflow_experiment is not None):
@@ -132,30 +129,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-    # okay so MLFlow is basically:
-    #   experiment_name -> e.g. "full fine-tuning"
-    #   run_name -> e.g.        "fine-tuning on source with hparams x,y,z"
-    #
-    #   or is it better to have:
-    #   experiment_name "fine-tuning on source" and then
-    #   run_name "this hparams" -> im not actually sure
-    #
-    # log:
-    #   model
-    #   hyperparameters (or just a config file)
-    #   results (metrics) -> metrics arent really trivial to log from only training
-    #
-    #   I should be able to track domain shift while running, no?
-    #       -> this could be done using a separate process
-    #       -> which basically evaluates the model asynchronously (but that might suck idk)
-    #
-    # TODO:
-    # 1. define exactly what experiments will be running
-    # 2.
-    #
-    # this is basically systems design
-    # 1. loading csv file, preprocessing it, saving the processed csv file
-    # 2. loading one csv file, performing splitting, saving to multiple csv files
-    # 3. train model, given some configuration and some dataset
-    # 4. evaluate model, given some model file and some dataset (right?)

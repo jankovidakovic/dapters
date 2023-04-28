@@ -155,9 +155,6 @@ def train(
                     step=global_step
                 )
 
-            # do early stopping only if theres eval dataloader
-
-            # step 1 -> extract metric
             if early_stopping_patience:
                 current_metric_value = metrics[metric_for_best_model]
                 if not is_improved(
@@ -186,7 +183,7 @@ def eval_loss_only(
             model: nn.Module,
             eval_dataloader: DataLoader
     ) -> dict[str, float]:
-        model.eval()  # this would be prettier as a context manager, but whatever
+        model.eval()
 
         # initialize tensors for predictions and references
         eval_size = len(eval_dataloader.dataset)  # noqa
@@ -226,8 +223,7 @@ def evaluate_finetuning(
         metrics_prefix: str = "eval"
     ) -> dict[str, float]:
 
-        # we need some metrics here
-        model.eval()  # this would be prettier as a context manager, but whatever
+        model.eval()
 
         # initialize tensors for predictions and references
         eval_size = len(eval_dataloader.dataset)  # noqa
@@ -300,7 +296,7 @@ def evaluate_pretraining():
             eval_size,
             64,  # sequence length
             device="cpu",
-            dtype=torch.int64  # why the fuck do you want long
+            dtype=torch.int64
         )
 
         with torch.no_grad():
@@ -312,7 +308,6 @@ def evaluate_pretraining():
                 predictions[batch_slice, :, :] = output.logits.detach().cpu()
                 references[batch_slice, :] = batch["labels"].detach().cpu()
 
-        # compute accuracy
         eval_loss = cross_entropy(
             input=predictions.view(-1, model.config.vocab_size),
             target=references.view(-1),
