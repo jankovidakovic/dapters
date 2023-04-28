@@ -10,7 +10,6 @@ class TrainingArguments:
     max_grad_norm: Optional[float]
     dataloader_num_workers: int
     epochs: int
-    eval_steps: int
     logging_steps: int
     save_steps: int
     output_dir: str
@@ -63,13 +62,6 @@ def add_training_args(parser: ArgumentParser):
     )
 
     group.add_argument(
-        "--eval_steps",
-        type=int,
-        default=500,
-        help="Number of gradient steps to perform between each evaluation."
-    )
-
-    group.add_argument(
         "--logging_steps",
         type=int,
         default=100,
@@ -80,7 +72,9 @@ def add_training_args(parser: ArgumentParser):
         "--save_steps",
         type=int,
         default=None,
-        help="Saving interval in steps. Defaults to None.",
+        help="Period of model and tokenizer saving (in steps). "
+             "Model and tokenizer are also saved at the end of each epoch."
+             "If 'save_steps' is not specified, then no additional saving (besides the end of epoch) is done.",
     )
 
     group.add_argument(
