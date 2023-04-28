@@ -64,7 +64,6 @@ def train(
         scheduler: LRScheduler,
         train_dataloader: DataLoader,
         epochs: int,
-        # eval_steps: int,  # does it even make sense to decouple this?
         # save_steps: int,
         output_dir: str,
         logging_steps: int,
@@ -273,7 +272,6 @@ def evaluate_finetuning(
 
 
 def evaluate_pretraining():
-    # metrics = ["accuracy", "eval_loss", "perplexity"]
     def do_evaluate(
             model: nn.Module,
             eval_dataloader: DataLoader,
