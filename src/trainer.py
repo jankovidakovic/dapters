@@ -63,10 +63,10 @@ def train(
         scheduler: LRScheduler,
         train_dataloader: DataLoader,
         epochs: int,
-        # save_steps: int,
         output_dir: str,
         logging_steps: int,
         get_loss: Callable[[BatchEncoding, ModelOutput], torch.Tensor],
+        save_steps: Optional[int] = None,
         max_grad_norm: Optional[float] = None,
         early_stopping_patience: Optional[int] = None,
         metric_for_best_model: str = "macro-f1",
@@ -134,8 +134,19 @@ def train(
                 mlflow.log_metric(key="train_loss", value=loss.item(), step=global_step)
                 # TODO - log average loss instead of current loss
 
+            if save_steps and global_step % save_steps == 0:
+                logger.warning(f"Saving checkpoint at global step {global_step}...")
+                save_checkpoint(
+                    model=model,  # noqa
+                    output_dir=output_dir,
+                    global_step=global_step,
+                    tokenizer=tokenizer,
+                    use_mlflow=use_mlflow
+                )
+
 
         # save checkpoint at the end of the epoch
+        logger.warning(f"Saving checkpoint at the end of epoch {epoch}...")
         save_checkpoint(
             model=model,  # noqa
             output_dir=output_dir,

@@ -110,6 +110,7 @@ def main():
         eval_dataloader=eval_dataloader,
         epochs=args.epochs,
         logging_steps=args.logging_steps,
+        save_steps=args.save_steps,
         output_dir=args.output_dir,
         max_grad_norm=args.max_grad_norm,
         do_evaluate=eval_loss_only(loss_fn=mean_binary_cross_entropy),

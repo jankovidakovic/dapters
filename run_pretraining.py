@@ -106,7 +106,7 @@ def main():
         train_dataloader=dataloader,
         epochs=args.epochs,
         logging_steps=args.logging_steps,
-        # save_steps=args.save_steps,
+        save_steps=args.save_steps,
         output_dir=args.output_dir,
         max_grad_norm=args.max_grad_norm,
         # early_stopping_patience=args.early_stopping_patience,
