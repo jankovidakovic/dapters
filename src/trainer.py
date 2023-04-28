@@ -2,7 +2,6 @@ import logging
 from pprint import pformat
 from typing import Callable, Optional
 
-import mlflow
 import numpy as np
 import torch.optim
 from sklearn.metrics import precision_recall_fscore_support
@@ -75,6 +74,7 @@ def train(
         gradient_accumulation_steps: int = 1,
         eval_dataloader: Optional[DataLoader] = None,
         do_evaluate: Optional[Callable[[nn.Module, DataLoader], dict[str, float]]] = None,
+        use_mlflow: bool = False
 ):
     global_step = 0
     early_stopping_step: Optional[int]
@@ -94,6 +94,10 @@ def train(
 
     if gradient_accumulation_steps > 1:
         logger.warning(f"Gradient accumulation is enabled with {gradient_accumulation_steps} steps.")
+
+    if use_mlflow:
+        import mlflow
+        logger.warning(f"MLFlow is enabled. Logging to {mlflow.get_tracking_uri()}.")
 
 
     for epoch in range(1, epochs + 1):
@@ -125,9 +129,9 @@ def train(
                     f"Epoch = {epoch} (LR = {scheduler.get_last_lr()[-1]:.8f}; loss = {loss.item():.4f})"
                 )
 
-            # if global_step % logging_steps == 0:
+            if use_mlflow and global_step % logging_steps == 0:
                 # log loss
-                # mlflow.log_metric(key="train_loss", value=loss.item(), step=global_step)
+                mlflow.log_metric(key="train_loss", value=loss.item(), step=global_step)
                 # TODO - log average loss instead of current loss
 
 
@@ -136,17 +140,20 @@ def train(
             model=model,  # noqa
             output_dir=output_dir,
             global_step=global_step,
-            tokenizer=tokenizer
+            tokenizer=tokenizer,
+            use_mlflow=use_mlflow
         )
 
         if eval_dataloader:
             logger.warning(F"Evaluating...")
             metrics = do_evaluate(model, eval_dataloader)
             logger.info(f"[GLOBAL_STEP = {global_step}] {pformat(metrics)}")
-            mlflow.log_metrics(
-                metrics=metrics,
-                step=global_step
-            )
+
+            if use_mlflow:
+                mlflow.log_metrics(
+                    metrics=metrics,
+                    step=global_step
+                )
 
             # do early stopping only if theres eval dataloader
 
