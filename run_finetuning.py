@@ -15,7 +15,6 @@ from src.trainer import train, fine_tuning_loss, eval_loss_only
 from src.utils import setup_logging, get_labels, get_tokenization_fn, setup_optimizers, maybe_tf32, get_tokenizer, \
     pipeline, mean_binary_cross_entropy
 
-import mlflow
 
 logger = logging.getLogger(__name__)
 
@@ -90,16 +89,20 @@ def main():
     )   # TODO - dataloader was an IterableDataset, we wouldnt have len -> fix
 
     # set up mlflow
-    mlflow.set_tracking_uri(args.mlflow_tracking_uri)
-    mlflow_experiment = mlflow.set_experiment(args.mlflow_experiment)
+    if use_mlflow := (args.mlflow_experiment is not None):
+        import mlflow
+        mlflow.set_tracking_uri(args.mlflow_tracking_uri)
+        mlflow_experiment = mlflow.set_experiment(args.mlflow_experiment)
 
-    mlflow.start_run(
-        experiment_id=mlflow_experiment.experiment_id,
-        run_name=args.mlflow_run_name,
-        description=args.mlflow_run_description
-    )
+        mlflow.start_run(
+            experiment_id=mlflow_experiment.experiment_id,
+            run_name=args.mlflow_run_name,
+            description=args.mlflow_run_description
+        )
 
-    mlflow.log_params(vars(args))
+        mlflow.log_params(vars(args))
+
+
 
     train(
         model=model,
@@ -118,11 +121,13 @@ def main():
         metric_for_best_model=args.metric_for_best_model,
         greater_is_better=args.greater_is_better,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
+        use_mlflow=use_mlflow
     )
 
     logger.warning("Training complete.")
 
-    mlflow.end_run()
+    if use_mlflow:
+        mlflow.end_run()
 
 
 if __name__ == "__main__":
