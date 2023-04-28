@@ -1,6 +1,5 @@
 import logging
 
-import mlflow
 import pandas as pd
 from pandas import DataFrame
 from torch.utils.data import DataLoader
@@ -85,6 +84,8 @@ def main():
     )   # TODO - dataloader was an IterableDataset, we wouldnt have len -> fix
 
     if args.mlflow_experiment:
+        use_mlflow = True
+        import mlflow
         # set up mlflow
         mlflow.set_tracking_uri(args.mlflow_tracking_uri)
         mlflow_experiment = mlflow.set_experiment(args.mlflow_experiment)
@@ -96,6 +97,9 @@ def main():
         )
 
         mlflow.log_params(vars(args))
+
+    else:
+        use_mlflow = False
 
     train(
         model=model,
@@ -114,11 +118,12 @@ def main():
         # greater_is_better=args.greater_is_better,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         get_loss=pretraining_loss(),
+        use_mlflow=use_mlflow
     )
 
     logger.warning("Training complete.")
 
-    if args.mlflow_experiment:
+    if use_mlflow:
         mlflow.end_run()
 
 
