@@ -53,10 +53,6 @@ def main():
     train_dataset = do_preprocess(args.train_dataset_path)
     eval_dataset = do_preprocess(args.eval_dataset_path)
 
-    train_dataloader, eval_dataloader = setup_dataloaders(
-        train_dataset, eval_dataset, args
-    )
-
     # initialize model
     model = AutoModelForSequenceClassification.from_pretrained(
         args.pretrained_model_name_or_path,
@@ -70,6 +66,8 @@ def main():
 
     logger.info(f"Model loaded successfully on device: {model.device}")
 
+    epoch_steps = len(train_dataset) // args.per_device_train_batch_size
+
     optimizer, scheduler = setup_optimizers(
         model,
         lr=args.learning_rate,
@@ -78,7 +76,7 @@ def main():
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         warmup_percentage=args.warmup_percentage,
         epochs=args.epochs,
-        epoch_steps=len(train_dataloader),
+        epoch_steps=epoch_steps,
         scheduler_type=args.scheduler_type
     )
 
@@ -103,8 +101,10 @@ def main():
         tokenizer=tokenizer,
         optimizer=optimizer,
         scheduler=scheduler,
-        train_dataloader=train_dataloader,
-        eval_dataloader=eval_dataloader,
+        train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
+        per_device_train_batch_size=args.per_device_train_batch_size,
+        per_device_eval_batch_size=args.per_device_eval_batch_size,
         epochs=args.epochs,
         logging_steps=args.logging_steps,
         save_steps=args.save_steps,

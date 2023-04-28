@@ -8,7 +8,7 @@ from sklearn.metrics import precision_recall_fscore_support
 from torch import nn
 from torch.nn.utils import clip_grad_norm_
 from torch.optim.lr_scheduler import LRScheduler
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
 from transformers import PreTrainedTokenizer, BatchEncoding
 
@@ -61,7 +61,10 @@ def train(
         tokenizer: PreTrainedTokenizer,
         optimizer: torch.optim.Optimizer,
         scheduler: LRScheduler,
-        train_dataloader: DataLoader,
+        train_dataset: Dataset,
+        eval_dataset: Dataset,
+        per_device_train_batch_size: int,
+        per_device_eval_batch_size: int,
         epochs: int,
         output_dir: str,
         logging_steps: int,
@@ -72,7 +75,6 @@ def train(
         metric_for_best_model: str = "macro-f1",
         greater_is_better: bool = True,
         gradient_accumulation_steps: int = 1,
-        eval_dataloader: Optional[DataLoader] = None,
         do_evaluate: Optional[Callable[[nn.Module, DataLoader], dict[str, float]]] = None,
         use_mlflow: bool = False,
         evaluate_on_train: bool = False,
@@ -100,6 +102,35 @@ def train(
         import mlflow
         logger.warning(f"MLFlow is enabled. Logging to {mlflow.get_tracking_uri()}.")
 
+
+    # setup train dataloader
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=per_device_train_batch_size,
+        shuffle=True,
+        pin_memory=True,
+        num_workers=32  # hardcoded for now
+    )
+
+    if evaluate_on_train:
+        train_eval_dataloader = DataLoader(
+            train_dataset,
+            batch_size=per_device_eval_batch_size,
+            shuffle=False,
+            pin_memory=True,
+            num_workers=32
+        )
+
+    eval_dataloader = DataLoader(
+        eval_dataset,
+        batch_size=per_device_eval_batch_size,
+        shuffle=False,
+        pin_memory=True,
+        num_workers=32
+    )
+
+    assert len(train_dataset) // per_device_train_batch_size == len(train_dataloader), \
+        "Somethings wrong with the calculation of epoch_steps"
 
     for epoch in range(1, epochs + 1):
         epoch_step = 0
@@ -158,7 +189,7 @@ def train(
 
         if evaluate_on_train:
             logger.warning(f"Evaluating on training set after epoch {epoch}...")
-            metrics = do_evaluate(model, train_dataloader, prefix="train")
+            metrics = do_evaluate(model, train_eval_dataloader, prefix="train")
             # yea but we would want to do this with the full-blown batch size
             logger.warning(f"[EPOCH = {epoch}; GLOBAL_STEP = {global_step}] {pformat(metrics)}")
 
