@@ -19,7 +19,7 @@ class FineTuningArguments(
     ConfigurationArguments
 ):
     labels_path: str
-    # evaluation_threshold: float
+    evaluation_threshold: float
 
 def get_parser():
     parser = argparse.ArgumentParser("Fine-tuning arguments parser")
@@ -37,12 +37,12 @@ def get_parser():
         help="Filesystem path to the JSON file containing a list of labels."
     )
 
-    # parser.add_argument(
-        # "--evaluation_threshold",
-        # type=float,
-        # default=0.75,
-        # help="Threshold for classification evaluation. Defaults to 0.75."
-    # )
+    parser.add_argument(
+        "--evaluation_threshold",
+        type=float,
+        default=0.75,
+        help="Threshold for classification evaluation. Defaults to 0.75."
+    )
 
     return parser
 

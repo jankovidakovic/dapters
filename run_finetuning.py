@@ -110,7 +110,9 @@ def main():
         save_steps=args.save_steps,
         output_dir=args.output_dir,
         max_grad_norm=args.max_grad_norm,
-        do_evaluate=evaluate_finetuning(),
+        do_evaluate=evaluate_finetuning(
+            evaluation_threshold=args.evaluation_threshold,
+        ),
         get_loss=fine_tuning_loss(loss_fn=mean_binary_cross_entropy),
         early_stopping_patience=args.early_stopping_patience,
         metric_for_best_model=args.metric_for_best_model,
