@@ -68,7 +68,6 @@ def train(
         per_device_eval_batch_size: int,
         epochs: int,
         output_dir: str,
-        logging_steps: int,
         get_loss: Callable[[BatchEncoding, ModelOutput], torch.Tensor],
         save_steps: Optional[int] = None,
         max_grad_norm: Optional[float] = None,
@@ -171,11 +170,6 @@ def train(
                 pbar.set_description(
                     f"Epoch = {epoch} (LR = {scheduler.get_last_lr()[-1]:.8f}; loss = {loss.item():.4f})"
                 )
-
-            if use_mlflow and global_step % logging_steps == 0:
-                # log loss
-                mlflow.log_metric(key="train_loss", value=loss.item(), step=global_step)
-                # TODO - log average loss instead of current loss
 
             if save_steps and global_step % save_steps == 0:
                 logger.warning(f"Saving checkpoint at global step {global_step}...")

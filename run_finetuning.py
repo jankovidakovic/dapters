@@ -104,7 +104,6 @@ def main():
         per_device_train_batch_size=args.per_device_train_batch_size,
         per_device_eval_batch_size=args.per_device_eval_batch_size,
         epochs=args.epochs,
-        logging_steps=args.logging_steps,
         save_steps=args.save_steps,
         output_dir=args.output_dir,
         max_grad_norm=args.max_grad_norm,
