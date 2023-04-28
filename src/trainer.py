@@ -74,7 +74,8 @@ def train(
         gradient_accumulation_steps: int = 1,
         eval_dataloader: Optional[DataLoader] = None,
         do_evaluate: Optional[Callable[[nn.Module, DataLoader], dict[str, float]]] = None,
-        use_mlflow: bool = False
+        use_mlflow: bool = False,
+        evaluate_on_train: bool = False,
 ):
     global_step = 0
     early_stopping_step: Optional[int]
@@ -155,10 +156,22 @@ def train(
             use_mlflow=use_mlflow
         )
 
+        if evaluate_on_train:
+            logger.warning(f"Evaluating on training set after epoch {epoch}...")
+            metrics = do_evaluate(model, train_dataloader, prefix="train")
+            # yea but we would want to do this with the full-blown batch size
+            logger.warning(f"[EPOCH = {epoch}; GLOBAL_STEP = {global_step}] {pformat(metrics)}")
+
+            if use_mlflow:
+                mlflow.log_metrics(
+                    metrics=metrics,
+                    step=global_step
+                )
+
         if eval_dataloader:
             logger.warning(F"Evaluating...")
-            metrics = do_evaluate(model, eval_dataloader)
-            logger.info(f"[GLOBAL_STEP = {global_step}] {pformat(metrics)}")
+            metrics = do_evaluate(model, eval_dataloader, prefix="eval")
+            logger.warning(f"[EPOCH = {epoch}; GLOBAL_STEP = {global_step}] {pformat(metrics)}")
 
             if use_mlflow:
                 mlflow.log_metrics(
@@ -276,13 +289,13 @@ def evaluate_finetuning(
     def evaluate(
         model: nn.Module,
         eval_dataloader: DataLoader,
-        metrics_prefix: str = "eval"
+        prefix: str = "eval"
     ) -> dict[str, float]:
 
         predictions, references = do_predict(model, eval_dataloader)
 
         metrics = {
-            f"{metrics_prefix}_loss": loss_fn(
+            f"{prefix}_loss": loss_fn(
                 input=predictions,
                 target=references,
                 reduction="mean"
@@ -302,7 +315,7 @@ def evaluate_finetuning(
             )[:-1]
 
             for name, value in zip(["precision", "recall", "f1"], prf):
-                metrics[f"{metrics_prefix}_{average}-{name}"] = value
+                metrics[f"{prefix}_{average}-{name}"] = value
 
         model.train()
 

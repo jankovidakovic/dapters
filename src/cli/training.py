@@ -19,6 +19,7 @@ class TrainingArguments:
     metric_for_best_model: Optional[str]
     greater_is_better: bool
     gradient_accumulation_steps: int
+    evaluate_on_train: bool
 
 
 
@@ -103,4 +104,11 @@ def add_training_args(parser: ArgumentParser):
         type=int,
         default=1,
         help="Number of gradient accumulation steps. Defaults to 1."
+    )
+
+    group.add_argument(
+        "--evaluate_on_train",
+        action="store_true",
+        default=False,
+        help="Whether to evaluate on the training set (after every epoch). Defaults to False."
     )
