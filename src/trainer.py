@@ -224,6 +224,51 @@ def eval_loss_only(
     return evaluate
 
 
+@torch.no_grad()
+def do_predict(
+        model: nn.Module,
+        dataloader: DataLoader,
+) -> (torch.Tensor, torch.Tensor):
+    """ Runs inference using the given dataloader.
+    Model outputs are transformed to probabilities using sigmoid function.
+
+    :param model:
+    :param dataloader:
+    :return: tensor of shape (num_samples, num_classes)
+    """
+
+    data_len = len(dataloader.dataset)  # noqa
+    num_labels = model.config.num_labels
+    predictions = torch.empty(
+        data_len,
+        num_labels,
+        device="cpu",
+        dtype=torch.float32
+    )
+    references = torch.empty(
+        data_len,
+        num_labels,
+        device="cpu",
+        dtype=torch.float32
+    )
+
+    model.eval()
+    for i, batch in tqdm(enumerate(dataloader), total=len(dataloader), desc="Prediction loop"):
+        set_device(batch, model.device)
+        output = model(**batch)
+
+        batch_slice = slice(
+            i * dataloader.batch_size,
+            (i + 1) * dataloader.batch_size)
+
+        predictions[batch_slice] = output["logits"].detach().cpu()
+        references[batch_slice] = batch["labels"].detach().cpu()
+
+    model.train()
+
+    return predictions, references
+
+
 def evaluate_finetuning(
         evaluation_threshold: float = 0.75,
         loss_fn = binary_cross_entropy_with_logits,
@@ -234,43 +279,24 @@ def evaluate_finetuning(
         metrics_prefix: str = "eval"
     ) -> dict[str, float]:
 
-        model.eval()
-
-        # initialize tensors for predictions and references
-        eval_size = len(eval_dataloader.dataset)  # noqa
-        logits_all = torch.empty(eval_size, 33, device="cpu", dtype=torch.float32)
-        references_all = torch.empty(eval_size, 33, device="cpu", dtype=torch.float32)
-
-        with torch.no_grad():
-            for i, batch in tqdm(enumerate(eval_dataloader), total=len(eval_dataloader), desc="Validation"):
-                for key in batch:
-                    if type(batch[key]) == torch.Tensor:
-                        batch[key] = batch[key].to(model.device)  # bruh?
-                output = model(**batch)
-                references = batch["labels"]
-
-                batch_slice = slice(i * eval_dataloader.batch_size, (i + 1) * eval_dataloader.batch_size)
-                logits_all[batch_slice] = output["logits"].detach().cpu()
-                references_all[batch_slice] = references.detach().cpu()
-
-        # compute loss
+        predictions, references = do_predict(model, eval_dataloader)
 
         metrics = {
             f"{metrics_prefix}_loss": loss_fn(
-                input=logits_all,
-                target=references_all,
+                input=predictions,
+                target=references,
                 reduction="mean"
             ).item()
         }
 
-        predictions_all = (torch.sigmoid(logits_all) > evaluation_threshold).int()  # noqa
+        predictions = (torch.sigmoid(predictions) > evaluation_threshold).int()  # noqa
 
         averages = ["macro", "micro", "weighted"]
 
         for average in averages:
             prf = precision_recall_fscore_support(
-                y_true=references_all,
-                y_pred=predictions_all,
+                y_true=references,
+                y_pred=predictions,
                 average=average,
                 zero_division=0
             )[:-1]

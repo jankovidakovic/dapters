@@ -11,7 +11,7 @@ from transformers import (
 from src.data import setup_dataloaders
 from src.cli.finetuning import FineTuningArguments, parse_args
 from src.preprocess.steps import multihot_to_list, to_hf_dataset, hf_map, convert_to_torch, sequence_columns
-from src.trainer import train, fine_tuning_loss, eval_loss_only
+from src.trainer import train, fine_tuning_loss, evaluate_finetuning
 from src.utils import setup_logging, get_labels, get_tokenization_fn, setup_optimizers, maybe_tf32, get_tokenizer, \
     pipeline, mean_binary_cross_entropy
 
@@ -110,7 +110,7 @@ def main():
         save_steps=args.save_steps,
         output_dir=args.output_dir,
         max_grad_norm=args.max_grad_norm,
-        do_evaluate=eval_loss_only(loss_fn=mean_binary_cross_entropy),
+        do_evaluate=evaluate_finetuning(),
         get_loss=fine_tuning_loss(loss_fn=mean_binary_cross_entropy),
         early_stopping_patience=args.early_stopping_patience,
         metric_for_best_model=args.metric_for_best_model,
