@@ -380,7 +380,7 @@ def evaluate_pretraining():
 
                 batch_loss = cross_entropy(
                     input=output.logits.detach().cpu().view(-1, model.config.vocab_size),
-                    target=batch["labels"].view(-1),
+                    target=batch["labels"].detach().cpu().view(-1),
                     reduction="mean"
                 ).item()
                 current_batch_size = batch["input_ids"].shape[0]
