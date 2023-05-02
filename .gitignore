@@ -4,6 +4,18 @@ notebooks/
 scripts/
 plots/
 distances/
+logs/
+
+#mlflow stuff
+mlartifacts/
+mlruns/
+
+# model outputs
+outputs/
+representations/
+
+# labels
+labels.json
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,pycharm+all,visualstudiocode
