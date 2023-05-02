@@ -371,38 +371,23 @@ def evaluate_pretraining():
         # initialize tensors for predictions and references
         eval_size = len(eval_dataloader.dataset)  # noqa
 
-        predictions = torch.empty(
-            eval_size,
-            64,  # sequence length
-            model.config.vocab_size,
-            device="cpu",
-            dtype=torch.float32
-        )
-
-        references = torch.empty(
-            eval_size,
-            64,  # sequence length
-            device="cpu",
-            dtype=torch.int64
-        )
+        total_loss = 0
 
         with torch.no_grad():
             for i, batch in tqdm(enumerate(eval_dataloader), total=len(eval_dataloader), desc="Validation"):
                 set_device(batch, model.device)
                 output: MaskedLMOutput = model(**batch)
 
-                batch_slice = slice(i * eval_dataloader.batch_size, (i + 1) * eval_dataloader.batch_size)
-                predictions[batch_slice, :, :] = output.logits.detach().cpu()
-                references[batch_slice, :] = batch["labels"].detach().cpu()
-
-        loss = cross_entropy(
-            input=predictions.view(-1, model.config.vocab_size),
-            target=references.view(-1),
-            reduction="mean"
-        )
+                batch_loss = cross_entropy(
+                    input=output.logits.detach().cpu().view(-1, model.config.vocab_size),
+                    target=batch["labels"].view(-1),
+                    reduction="mean"
+                ).item()
+                current_batch_size = batch["input_ids"].shape[0]
+                total_loss += batch_loss * current_batch_size
 
         metrics = {
-            f"{prefix}_loss": loss.item()
+            f"{prefix}_loss": total_loss / len(eval_dataloader.dataset)
         }
 
         model.train()
