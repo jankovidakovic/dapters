@@ -124,7 +124,7 @@ def main():
 
     df[labels] = predictions
 
-    df_save_path = args.eval_dataset_path.split(".")[:-1]
+    df_save_path = ".".join(args.eval_dataset_path.split(".")[:-1])
     df_save_path = f"{df_save_path}_predictions.csv"
 
     logger.warning(F"Saving dataframe with predictions to {df_save_path}")
