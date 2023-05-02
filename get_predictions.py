@@ -45,17 +45,6 @@ def get_parser():
         default=128,
         help="Batch size for evaluation. Defaults to 128."
     )
-    parser.add_argument(
-        "--mlflow_run_id",
-        type=str,
-        help="MLFlow run ID to log metrics to."
-    )
-    parser.add_argument(
-        "--mlflow_tracking_uri",
-        type=str,
-        default="http://localhost:34567",
-        help="MLFlow tracking URI."
-    )
 
     return parser
 
