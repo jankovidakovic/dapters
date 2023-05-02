@@ -45,6 +45,12 @@ def get_parser():
         help="Batch size for evaluation. Defaults to 128."
     )
 
+    parser.add_argument(
+        "--save_path",
+        type=str,
+        help="Path to which the dataset will be saved."
+    )
+
     return parser
 
 
@@ -124,12 +130,9 @@ def main():
 
     df[labels] = predictions
 
-    df_save_path = ".".join(args.eval_dataset_path.split(".")[:-1])
-    df_save_path = f"{df_save_path}_predictions.csv"
+    logger.warning(F"Saving dataframe with predictions to {args.save_path}")
 
-    logger.warning(F"Saving dataframe with predictions to {df_save_path}")
-
-    df.to_csv(df_save_path, index=False)
+    df.to_csv(args.save_path, index=False)
 
     logger.warning(F"Dataframe with predictions successfully saved.")
 
