@@ -1,7 +1,5 @@
 import logging
-import os.path
 from argparse import ArgumentParser
-from pprint import pformat
 
 import pandas as pd
 import torch
@@ -94,7 +92,10 @@ def main():
 
     logger.warning(f"Model successfully loaded. ")
 
-    df = pd.read_csv(args.eval_dataset_path)
+    df = pd.read_csv(
+        args.eval_dataset_path,
+        low_memory=False
+    )
 
     # load datasets
     do_preprocess = pipeline(
