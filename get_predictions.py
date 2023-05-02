@@ -1,4 +1,5 @@
 import logging
+import os.path
 from argparse import ArgumentParser
 from pprint import pformat
 
@@ -8,7 +9,7 @@ from torch.utils.data import DataLoader
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, DefaultDataCollator
 
 from src.preprocess.steps import multihot_to_list, to_hf_dataset, hf_map, convert_to_torch, sequence_columns
-from src.trainer import do_predict, evaluate_finetuning
+from src.trainer import do_predict
 from src.utils import get_labels, pipeline, get_tokenization_fn, setup_logging
 
 
@@ -120,6 +121,17 @@ def main():
     predictions = torch.sigmoid(predictions)
 
     print(f"{predictions.shape = }")
+
+    df[labels] = predictions
+
+    df_save_path = args.eval_dataset_path.split(".")[:-1]
+    df_save_path = f"{df_save_path}_predictions.csv"
+
+    logger.warning(F"Saving dataframe with predictions to {df_save_path}")
+
+    df.to_csv(df_save_path, index=False)
+
+    logger.warning(F"Dataframe with predictions successfully saved.")
 
 
 if __name__ == "__main__":
