@@ -2,10 +2,8 @@ import logging
 from argparse import ArgumentParser
 from pprint import pformat
 
-import mlflow
 import pandas as pd
 import torch
-from pandas import DataFrame
 from torch.utils.data import DataLoader
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, DefaultDataCollator
 
@@ -102,7 +100,7 @@ def main():
         convert_to_torch(columns=sequence_columns)
     )  # looking good
 
-    dataset = do_preprocess(args.source_domain_dataset_path)
+    dataset = do_preprocess(df)
 
     logger.warning(f"Datasets successfully preprocessed.")
 
