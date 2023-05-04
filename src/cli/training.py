@@ -5,11 +5,11 @@ from typing import Optional
 
 @dataclass
 class TrainingArguments:
-    per_device_train_batch_size: int
+    per_device_train_batch_size: Optional[int]
     per_device_eval_batch_size: int
     max_grad_norm: Optional[float]
     dataloader_num_workers: int
-    epochs: int
+    epochs: Optional[int]
     logging_steps: int
     save_steps: int
     output_dir: str
@@ -17,7 +17,7 @@ class TrainingArguments:
     use_tf32: bool
     early_stopping_patience: Optional[int]
     metric_for_best_model: Optional[str]
-    greater_is_better: bool
+    greater_is_better: Optional[bool]
     gradient_accumulation_steps: int
     evaluate_on_train: bool
 

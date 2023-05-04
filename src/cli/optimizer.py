@@ -1,13 +1,14 @@
 # extract optimizer arguments from cli into here
 from argparse import ArgumentParser
 from dataclasses import dataclass, field
+from typing import Optional
 
 from transformers import SchedulerType
 
 
 @dataclass
 class OptimizerArguments:
-    learning_rate: float
+    learning_rate: Optional[float]
     adam_epsilon: float
     weight_decay: float
     scheduler_type: str | SchedulerType
