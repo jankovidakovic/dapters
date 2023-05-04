@@ -80,7 +80,8 @@ def train(
         # and other parameters (e.g. batch_size) were set by currying
         use_mlflow: bool = False,
         evaluate_on_train: bool = False,
-        collate_fn: Optional[DataCollator] = None
+        collate_fn: Optional[DataCollator] = None,
+        use_ray_tune: bool = False
 ):
     global_step = 0
     early_stopping_step: Optional[int]
@@ -104,6 +105,9 @@ def train(
     if use_mlflow:
         import mlflow
         logger.warning(f"MLFlow is enabled. Logging to {mlflow.get_tracking_uri()}.")
+
+    if use_ray_tune:
+        from ray.air import session
 
 
     # setup train dataloader
@@ -214,6 +218,11 @@ def train(
                     metrics=metrics,
                     step=global_step
                 )
+
+            if use_ray_tune:
+                session.report(
+                    {"epoch": epoch, **metrics}
+                )  # this KILLS the run if the metrics are bad
 
             if early_stopping_patience:
                 current_metric_value = metrics[metric_for_best_model]
