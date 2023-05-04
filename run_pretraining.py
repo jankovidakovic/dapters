@@ -6,7 +6,6 @@ from pandas import DataFrame
 from transformers import set_seed, DataCollatorForLanguageModeling, AutoModelForMaskedLM
 import torch
 
-from src.cli.pretraining import PreTrainingArguments, parse_args
 from src.preprocess import hf_map, to_hf_dataset, sequence_columns, convert_to_torch
 from src.trainer import train, pretraining_loss, evaluate_pretraining
 from src.utils import setup_logging, maybe_tf32, get_tokenizer, get_tokenization_fn, pipeline, setup_optimizers
@@ -16,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 def main():
     # setup logging
-    args: PreTrainingArguments = parse_args()
+    args = parse_args("pretraining")
     setup_logging(args)
     set_seed(args.random_seed)
     maybe_tf32(args)
@@ -51,7 +50,10 @@ def main():
     # we start from the model which is already pretrained
 
     # compile model
-    model: PreTrainedModel = torch.compile(model).to(args.device)  # noqa
+    if args.use_torch_compile:
+        model = torch.compile(model)
+
+    model = model.to(args.device)
 
     logger.info(f"Model loaded successfully on device: {model.device}")
 

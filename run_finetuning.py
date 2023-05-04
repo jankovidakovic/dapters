@@ -60,7 +60,10 @@ def main():
         cache_dir=args.cache_dir,
         problem_type="multi_label_classification"
     )
-    model = torch.compile(model)
+
+    if args.use_torch_compile:
+        model = torch.compile(model)
+
     model = model.to(args.device)
     # TODO - look into torch.compile options
 

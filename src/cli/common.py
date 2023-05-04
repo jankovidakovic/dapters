@@ -19,6 +19,13 @@ def add_configuration_args(parser: ArgumentParser):
     )
 
     group.add_argument(
+        "--use_torch_compile",
+        action="store_true",
+        default=False,
+        help="If set, model will be compiled using torch.compile()."
+    )
+
+    group.add_argument(
         "--random_seed",
         type=int,
         default=192837465,
