@@ -6,13 +6,12 @@ from datasets import Dataset, Sequence
 from torch.utils.data import DataLoader
 from transformers import DefaultDataCollator, DataCollator
 
-from src.cli.finetuning import FineTuningArguments
 from src.utils import dynamic_import, get_label_converter
 
 logger = logging.getLogger(__name__)
 
 
-def setup_data(args: FineTuningArguments, tokenizing_fn, labels: list[str]) -> (Dataset, Dataset):
+def setup_data(args, tokenizing_fn, labels: list[str]) -> (Dataset, Dataset):
     """ Sets up the dataset for multilabel classification.
 
     :param args:  command line args.

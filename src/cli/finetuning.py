@@ -1,25 +1,8 @@
 import argparse
-from dataclasses import dataclass
 
-from src.cli.config import add_configuration_args, ConfigurationArguments
-from src.cli.data import add_data_args, DataArguments
-from src.cli.model import add_model_args, ModelArguments
-from src.cli.optimizer import add_optimizer_args, OptimizerArguments
-from src.cli.tokenizer import add_tokenizer_args, TokenizerArguments
-from src.cli.training import add_training_args, TrainingArguments
+from src.cli.common import add_configuration_args, add_tokenizer_args, add_model_args, add_optimizer_args, \
+    add_data_args, add_training_args
 
-
-@dataclass
-class FineTuningArguments(
-    ModelArguments,
-    TokenizerArguments,
-    OptimizerArguments,
-    DataArguments,
-    TrainingArguments,
-    ConfigurationArguments
-):
-    labels_path: str
-    evaluation_threshold: float
 
 def get_parser():
     parser = argparse.ArgumentParser("Fine-tuning arguments parser")
@@ -45,7 +28,3 @@ def get_parser():
     )
 
     return parser
-
-def parse_args():
-    args = get_parser().parse_args()
-    return FineTuningArguments(**vars(args))

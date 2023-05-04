@@ -17,8 +17,6 @@ from tqdm import tqdm
 from transformers import PreTrainedTokenizer, PreTrainedModel, get_scheduler, AutoTokenizer, BatchEncoding
 from transformers.utils import PaddingStrategy
 
-from src.cli.finetuning import FineTuningArguments
-from src.cli.pretraining import PreTrainingArguments
 from src.types import HiddenRepresentationConfig, Domain
 
 logger = logging.getLogger(__name__)
@@ -219,14 +217,14 @@ def setup_optimizers(
     return optimizer, scheduler
 
 
-def maybe_tf32(args: FineTuningArguments | PreTrainingArguments):
+def maybe_tf32(args):
     if args.use_tf32:
         torch.backends.cuda.matmul.allow_tf32 = True  # noqa
         torch.backends.cudnn.allow_tf32 = True  # noqa
         logger.warning("TF32 enabled.")
 
 
-def get_tokenizer(args: FineTuningArguments | PreTrainingArguments) -> PreTrainedTokenizer:
+def get_tokenizer(args) -> PreTrainedTokenizer:
     return AutoTokenizer.from_pretrained(
         args.pretrained_model_name_or_path,
         model_max_length=args.max_length,

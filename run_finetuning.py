@@ -8,8 +8,7 @@ from transformers import (
     AutoModelForSequenceClassification,
 )
 
-from src.data import setup_dataloaders
-from src.cli.finetuning import FineTuningArguments, parse_args
+from src.cli import parse_args
 from src.preprocess.steps import multihot_to_list, to_hf_dataset, hf_map, convert_to_torch, sequence_columns
 from src.trainer import train, fine_tuning_loss, evaluate_finetuning
 from src.utils import setup_logging, get_labels, get_tokenization_fn, setup_optimizers, maybe_tf32, get_tokenizer, \
@@ -20,10 +19,11 @@ logger = logging.getLogger(__name__)
 
 
 def main():
-    args: FineTuningArguments = parse_args()
+    args = parse_args("finetuning")
+
     setup_logging(args)
 
-    set_seed(args.random_seed)
+    set_seed(args.random_seed)  # oh but this actually already works because argparse has __getattr__ implemented
 
     maybe_tf32(args)
 
@@ -122,7 +122,7 @@ def main():
     logger.warning("Training complete.")
 
     if use_mlflow:
-        mlflow.end_run()
+        mlflow.end_run(args)
 
 
 if __name__ == "__main__":
