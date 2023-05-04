@@ -1,3 +1,4 @@
+import gc
 import logging
 from pprint import pformat
 from typing import Callable, Optional
@@ -147,6 +148,10 @@ def train(
 
 
     for epoch in range(1, epochs + 1):
+        # try to clear GPU memory to prevent adapter memory leaks
+        gc.collect()
+        torch.cuda.empty_cache()  # im not even sure if this would help
+
         epoch_step = 0
         for i, batch in (pbar := tqdm(
                 enumerate(train_dataloader),
