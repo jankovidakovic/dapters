@@ -122,7 +122,7 @@ def main():
     logger.warning("Training complete.")
 
     if use_mlflow:
-        mlflow.end_run(args)
+        mlflow.end_run()
 
 
 if __name__ == "__main__":
