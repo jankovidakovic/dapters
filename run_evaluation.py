@@ -1,55 +1,53 @@
+import gc
 import logging
+import os.path
 from argparse import ArgumentParser
 from pprint import pformat
 
 import mlflow
 import pandas as pd
-import torch
 from pandas import DataFrame
 from torch.utils.data import DataLoader
-from transformers import AutoModelForSequenceClassification, AutoTokenizer, DefaultDataCollator
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, DefaultDataCollator
 
 from src.preprocess.steps import multihot_to_list, to_hf_dataset, hf_map, convert_to_torch, sequence_columns
 from src.trainer import evaluate_finetuning
-from src.utils import get_labels, pipeline, get_tokenization_fn, setup_logging
+from src.utils import setup_logging, get_labels, get_tokenization_fn, pipeline
 
+import torch
 
 logger = logging.getLogger(__name__)
 
 
-def get_parser():
-    parser = ArgumentParser("Fine-tuning evaluation")
+def main():
+
+    os.environ["TOKENIZERS_PARALLELISM"] = "0"
+    os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
+
+
+    parser = ArgumentParser("Evaluation of saved checkpoint on multiple domains")
+
     parser.add_argument(
-        "--tokenizer_path",
+        "--checkpoint",
         type=str,
-        help="Path to the tokenizer",
+        help="Paths to the checkpoints to evaluate.",
     )
+
     parser.add_argument(
-        "--model_path",
+        "--dataset_paths",
         type=str,
-        help="Path to the model",
+        nargs="+",
+        help="Paths to the datasets to evaluate on.",
     )
+
     parser.add_argument(
-        "--source_domain_dataset_path",
+        "--dataset_names",
         type=str,
-        help="Path to the source domain dataset.",
+        nargs="+",
+        help="Names to use for the datasets. Metrics will be logged with "
+             "the provided names as prefixes.",
     )
-    parser.add_argument(
-        "--target_domain_dataset_path",
-        type=str,
-        help="Path to the target domain dataset.",
-    )
-    parser.add_argument(
-        "--labels_path",
-        type=str,
-        help="Path to JSON file containing the labels."
-    )
-    parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=128,
-        help="Batch size for evaluation. Defaults to 128."
-    )
+
     parser.add_argument(
         "--mlflow_run_id",
         type=str,
@@ -62,119 +60,108 @@ def get_parser():
         help="MLFlow tracking URI."
     )
 
-    return parser
+    parser.add_argument(
+        "--labels_path",
+        type=str,
+        default="./labels.json",
+        help="Path to JSON file containing the labels."
+    )
 
+    args = parser.parse_args()
 
-def main():
-    args = get_parser().parse_args()
     setup_logging(None)
-
-    logger.info(f"Setting up the tokenizer...")
-
-    # load tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(
-        args.tokenizer_path,
-        model_max_length=64,
-        do_lower_case=True,
-    )
-
-    do_tokenize = get_tokenization_fn(
-        tokenizer=tokenizer,
-        padding="max_length",
-        truncation=True,
-        max_length=64,
-        message_column="preprocessed"
-    )
-
-    logger.info(f"Tokenizer set up.")
 
     # load labels
     labels = get_labels(args.labels_path)
-
-    logger.warning(f"{labels = }")
-    logger.warning(f"{len(labels) = }")
-
-    # load model
-    model = AutoModelForSequenceClassification.from_pretrained(
-        args.model_path,
-        problem_type="multi_label_classification",
-        num_labels=len(labels)
-    )
-
-    model = torch.compile(model).to("cuda")
-
-    logger.warning(f"Model successfully loaded. ")
-
-    # load datasets
-    do_preprocess = pipeline(
-        pd.read_csv,
-        DataFrame.dropna,
-        multihot_to_list(
-            label_columns=labels,
-            result_column="labels"
-        ),
-        to_hf_dataset,
-        hf_map(do_tokenize, batched=True),
-        convert_to_torch(columns=sequence_columns)
-    )
-
-    source_dataset = do_preprocess(args.source_domain_dataset_path)
-    target_dataset = do_preprocess(args.target_domain_dataset_path)
-
-    logger.warning(f"Datasets successfully preprocessed.")
-
-    source_dataloader = DataLoader(
-        source_dataset,
-        batch_size=args.batch_size,
-        shuffle=False,
-        num_workers=4,
-        pin_memory=True,
-        collate_fn=DefaultDataCollator(return_tensors="pt")
-    )
-
-    target_dataloader = DataLoader(
-        target_dataset,
-        batch_size=args.batch_size,
-        shuffle=False,
-        num_workers=4,
-        pin_memory=True,
-        collate_fn=DefaultDataCollator(return_tensors="pt")
-    )
 
     mlflow.set_tracking_uri(args.mlflow_tracking_uri)
     mlflow.start_run(
         run_id=args.mlflow_run_id,
     )
 
-    do_evaluate = evaluate_finetuning()
+    checkpoint_name = os.path.abspath(args.checkpoint)
+    logger.warning(f"Running evaluation for checkpoint: {checkpoint_name}")
 
-    logger.warning(f"Evaluating on source domain ({args.source_domain_dataset_path})...")
+    # extract checkpoint step
+    checkpoint_step = args.checkpoint.split("/")[-1].split("-")[-1]
 
-    source_metrics = do_evaluate(
-        model=model,
-        eval_dataloader=source_dataloader,
-        metrics_prefix="source"
-    )
+    for dataset_name, dataset_path in zip(args.dataset_names, args.dataset_paths):
+        # evaluate checkpoint on dataset
+        tokenizer = AutoTokenizer.from_pretrained(
+            args.checkpoint,
+            model_max_length=64,
+            do_lower_case=True,
+        )
 
-    logger.warning(f"Source evaluation finished.")
-    logger.warning(pformat(source_metrics))
+        do_tokenize = get_tokenization_fn(
+            tokenizer=tokenizer,
+            padding="max_length",
+            truncation=True,
+            max_length=64,
+            message_column="preprocessed"
+        )
 
-    logger.warning(f"Evaluating on target domain ({args.target_domain_dataset_path})...")
+        # load model
+        model = AutoModelForSequenceClassification.from_pretrained(
+            args.checkpoint,
+            problem_type="multi_label_classification",
+            num_labels=len(labels)
+        )  # sumnjivo tho
 
-    target_metrics = do_evaluate(
-        model=model,
-        eval_dataloader=target_dataloader,
-        metrics_prefix="target"
-    )
+        model = torch.compile(model).to("cuda")
 
-    logger.warning(f"Target evaluation finished.")
-    logger.warning(pformat(target_metrics))
+        logger.warning(f"Model successfully loaded. ")
 
-    mlflow.log_metrics(source_metrics)
-    mlflow.log_metrics(target_metrics)
+        # load datasets
+        do_preprocess = pipeline(
+            pd.read_csv,
+            DataFrame.dropna,
+            multihot_to_list(
+                label_columns=labels,
+                result_column="labels"
+            ),
+            to_hf_dataset,
+            hf_map(do_tokenize, batched=True),
+            convert_to_torch(columns=sequence_columns)
+        )
 
-    logger.warning(f"Evaluation finished.")
+        dataset = do_preprocess(dataset_path)
+
+        logger.warning(f"Dataset {dataset_name} processed successfully.")
+
+        dataloader = DataLoader(
+            dataset,
+            batch_size=128,
+            shuffle=False,
+            num_workers=4,
+            pin_memory=True,
+            collate_fn=DefaultDataCollator(return_tensors="pt")
+        )
+
+        do_evaluate = evaluate_finetuning(
+            # default threshold
+            # default loss_fn
+        )
+
+        logger.warning(f"Evaluating on dataset: {dataset_name}")
+
+        metrics = do_evaluate(
+            model=model,
+            eval_dataloader=dataloader,
+            prefix=dataset_name
+        )
+
+        logger.warning(pformat(metrics))
+        mlflow.log_metrics(
+            metrics,
+            step=int(checkpoint_step)
+        )
+
+        logger.warning(f"evaluation finished for {dataset_name}")
+
+    logger.warning(f"Evaluated all datasets on checkpoint {args.checkpoint}")
+    mlflow.end_run()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
