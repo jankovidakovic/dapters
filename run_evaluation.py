@@ -108,7 +108,8 @@ def main():
             num_labels=len(labels)
         )  # sumnjivo tho
 
-        model = torch.compile(model).to("cuda")
+        model = model.to("cuda")
+        # removed torch.compile because its not even faster and it doesnt really work with adapters
 
         logger.warning(f"Model successfully loaded. ")
 
