@@ -18,7 +18,7 @@ from torch.nn.functional import binary_cross_entropy_with_logits, cross_entropy
 from transformers.modeling_outputs import SequenceClassifierOutput, MaskedLMOutput
 from transformers.utils import ModelOutput
 
-from src.utils import save_checkpoint, is_improved, set_device
+from src.utils import save_checkpoint, is_improved, set_device, save_transformer_model
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +83,8 @@ def train(
         evaluate_on_train: bool = False,
         collate_fn: Optional[DataCollator] = None,
         use_ray_tune: bool = False,
-        early_stopping_start: int = 0
+        early_stopping_start: int = 0,
+        model_saving_callback: Callable = save_transformer_model,
 ):
     global_step = 0
     early_stopping_step: Optional[int]
@@ -185,7 +186,8 @@ def train(
                     output_dir=output_dir,
                     global_step=global_step,
                     tokenizer=tokenizer,
-                    use_mlflow=use_mlflow
+                    use_mlflow=use_mlflow,
+                    model_saving_callback=model_saving_callback
                 )
 
 
@@ -196,7 +198,8 @@ def train(
             output_dir=output_dir,
             global_step=global_step,
             tokenizer=tokenizer,
-            use_mlflow=use_mlflow
+            use_mlflow=use_mlflow,
+            model_saving_callback=model_saving_callback
         )
 
         if evaluate_on_train:

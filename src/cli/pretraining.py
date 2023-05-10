@@ -2,10 +2,10 @@ import argparse
 from dataclasses import dataclass
 
 from src.cli.common import add_configuration_args, add_tokenizer_args, add_model_args, add_optimizer_args, \
-    add_data_args, add_training_args
+    add_data_args, add_training_args, add_adapter_args
 
 
-def get_parser():
+def get_parser(use_adapters: bool = False):
     parser = argparse.ArgumentParser("Pretraining argument parser.")
 
     add_model_args(parser)
@@ -14,6 +14,8 @@ def get_parser():
     add_data_args(parser)
     add_training_args(parser)
     add_configuration_args(parser)
+    if use_adapters:
+        add_adapter_args(parser)
 
     parser.add_argument(
         "--mlm_probability",

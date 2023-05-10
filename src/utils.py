@@ -1,5 +1,6 @@
 import json
 import operator
+from functools import partial
 from pprint import pformat
 from typing import Callable
 import logging
@@ -135,18 +136,31 @@ def get_tokenization_fn(
     return tokenize
 
 
+def save_transformer_model(model, output_dir):
+    model.save_pretrained(output_dir)
+
+
+def save_adapter_model(model, output_dir, adapter_name):
+    model.save_adapter(
+        save_directory=output_dir,
+        adapter_name=adapter_name,
+        with_head=True
+    )
+
+
 def save_checkpoint(
         model: PreTrainedModel,
         output_dir: str,
         global_step: int,
         tokenizer: PreTrainedTokenizer,
-        use_mlflow: bool = False
+        use_mlflow: bool = False,
+        model_saving_callback: Callable = save_transformer_model
 ):
     checkpoint_name = f"checkpoint-{global_step}"
     output_dir = os.path.join(output_dir, checkpoint_name)  # moze
     output_dir = os.path.abspath(output_dir)
     os.makedirs(output_dir, exist_ok=True)
-    model.save_pretrained(output_dir)
+    model_saving_callback(model, output_dir)
     logger.info(f"Saved model checkpoint to {output_dir}")
 
     tokenizer.save_pretrained(output_dir)

@@ -297,3 +297,30 @@ def add_training_args(parser: ArgumentParser):
         default=False,
         help="Whether to evaluate on the training set (after every epoch). Defaults to False."
     )
+
+
+def add_adapter_args(parser):
+    group = parser.add_argument_group("adapter", "Arguments relevant for adapter training.")
+
+    group.add_argument(
+        "--adapter_config",
+        type=str,
+        choices=["pfeiffer", "houlsby"],
+        default="pfeiffer",
+        help="Adapter configuration to use. Defaults to 'pfeiffer'."
+    )
+
+    group.add_argument(
+        "--reduction_factor",
+        type=int,
+        default=16,
+        help="Reduction factor for the adapter. Defaults to 16."
+    )
+
+    group.add_argument(
+        "--adapter_name",
+        type=str,
+        help="Name of the adapter to train. Defaults to None."
+    )
+
+    # thats everything
