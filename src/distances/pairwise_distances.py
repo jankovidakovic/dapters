@@ -1,6 +1,7 @@
 import logging
 from typing import Optional
 
+import numpy as np
 from scipy.spatial.distance import mahalanobis
 
 from src.distances import euclidean_distance, cosine_distance, jaccard_on_cluster_ids, coral, cmd
@@ -20,7 +21,7 @@ def compute_centroid_distances(
         "mahalanobis": mahalanobis(
             domain_collection[source].centroid,
             domain_collection[target].centroid,
-            domain_collection.representation_covmat),
+            np.linalg.inv(domain_collection.representation_covmat)),
         "cosine_distance": cosine_distance(
             domain_collection[source].centroid,
             domain_collection[target].centroid),
