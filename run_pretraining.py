@@ -6,6 +6,7 @@ from pandas import DataFrame
 from transformers import set_seed, DataCollatorForLanguageModeling, AutoModelForMaskedLM
 import torch
 
+from src.cli import parse_args
 from src.preprocess import hf_map, to_hf_dataset, sequence_columns, convert_to_torch
 from src.trainer import train, pretraining_loss, evaluate_pretraining
 from src.utils import setup_logging, maybe_tf32, get_tokenizer, get_tokenization_fn, pipeline, setup_optimizers
