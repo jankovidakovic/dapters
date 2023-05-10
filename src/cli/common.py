@@ -278,6 +278,13 @@ def add_training_args(parser: ArgumentParser):
     )
 
     group.add_argument(
+        "--early_stopping_start",
+        type=int,
+        default=0,
+        help="Number of epochs to wait before starting early stopping. Defaults to 0."
+    )
+
+    group.add_argument(
         "--gradient_accumulation_steps",
         type=int,
         default=1,

@@ -82,7 +82,8 @@ def train(
         use_mlflow: bool = False,
         evaluate_on_train: bool = False,
         collate_fn: Optional[DataCollator] = None,
-        use_ray_tune: bool = False
+        use_ray_tune: bool = False,
+        early_stopping_start: int = 0
 ):
     global_step = 0
     early_stopping_step: Optional[int]
@@ -226,7 +227,7 @@ def train(
                     {"epoch": epoch, **metrics}
                 )  # this KILLS the run if the metrics are bad
 
-            if early_stopping_patience:
+            if early_stopping_patience and epoch >= early_stopping_start:
                 current_metric_value = metrics[metric_for_best_model]
                 if not is_improved(
                     current_metric_value,

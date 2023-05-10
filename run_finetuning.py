@@ -120,6 +120,7 @@ def main():
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         use_mlflow=use_mlflow,
         evaluate_on_train=args.evaluate_on_train,
+        early_stopping_start=args.early_stopping_start
     )
 
     logger.warning("Training complete.")
