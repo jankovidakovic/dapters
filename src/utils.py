@@ -157,7 +157,7 @@ def save_checkpoint(
         use_mlflow: bool = False,
         model_saving_callback: Callable = save_transformer_model
 ):
-    checkpoint_name = f"checkpoint-{global_step}"
+    checkpoint_name = f"{global_step}-ckpt"  # changed the scheme
     output_dir = os.path.join(output_dir, checkpoint_name)  # moze
     output_dir = os.path.abspath(output_dir)
     os.makedirs(output_dir, exist_ok=True)
