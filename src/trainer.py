@@ -85,6 +85,7 @@ def train(
         use_ray_tune: bool = False,
         early_stopping_start: int = 0,
         model_saving_callback: Callable = save_transformer_model,
+        dataloader_num_workers: int = 8,
 ):
     global_step = 0
     early_stopping_step: Optional[int]
@@ -119,8 +120,8 @@ def train(
         batch_size=per_device_train_batch_size,
         shuffle=True,
         pin_memory=True,
-        num_workers=32,
-        collate_fn=collate_fn
+        num_workers=dataloader_num_workers,
+        collate_fn=collate_fn,
         # hardcoded for now
     )
 
@@ -130,7 +131,7 @@ def train(
             batch_size=per_device_eval_batch_size,
             shuffle=False,
             pin_memory=True,
-            num_workers=32,
+            num_workers=dataloader_num_workers,
             collate_fn=collate_fn
         )
 
@@ -139,7 +140,7 @@ def train(
         batch_size=per_device_eval_batch_size,
         shuffle=False,
         pin_memory=True,
-        num_workers=32,
+        num_workers=dataloader_num_workers,
         collate_fn=collate_fn
     )
 

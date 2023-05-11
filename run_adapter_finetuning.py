@@ -130,7 +130,8 @@ def main():
         use_mlflow=use_mlflow,
         evaluate_on_train=args.evaluate_on_train,
         early_stopping_start=args.early_stopping_start,
-        model_saving_callback=partial(save_adapter_model, adapter_name=args.adapter_name)
+        model_saving_callback=partial(save_adapter_model, adapter_name=args.adapter_name),
+        dataloader_num_workers=args.dataloader_num_workers,
     )  # thats it?
 
     logger.warning("Training complete.")

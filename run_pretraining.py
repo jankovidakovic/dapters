@@ -115,7 +115,8 @@ def main():
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         get_loss=pretraining_loss(),
         do_evaluate=evaluate_pretraining(),
-        use_mlflow=use_mlflow
+        use_mlflow=use_mlflow,
+        dataloader_num_workers=args.dataloader_num_workers,
     )
 
     logger.warning("Training complete.")

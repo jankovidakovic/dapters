@@ -127,7 +127,8 @@ def main():
         get_loss=pretraining_loss(),
         do_evaluate=evaluate_pretraining(),
         use_mlflow=use_mlflow,
-        model_saving_callback=partial(save_adapter_model, adapter_name=args.adapter_name)
+        model_saving_callback=partial(save_adapter_model, adapter_name=args.adapter_name),
+        dataloader_num_workers=args.dataloader_num_workers,
     )
 
     logger.warning("Training complete.")
