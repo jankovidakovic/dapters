@@ -1,4 +1,3 @@
-import gc
 import logging
 import os.path
 from argparse import ArgumentParser
@@ -6,7 +5,6 @@ from pprint import pformat
 
 import mlflow
 import pandas as pd
-from pandas import DataFrame
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, DefaultDataCollator
 
@@ -90,36 +88,36 @@ def main():
     logger.warning(f"Running evaluation for checkpoint: {checkpoint_name}")
 
     # extract checkpoint step
-    checkpoint_step = args.checkpoint.split("/")[-1].split("-")[-1]
+    checkpoint_step = args.checkpoint.split("/")[-1].split("-")[0]
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        args.checkpoint,
+        model_max_length=64,
+        do_lower_case=True,
+    )
+
+    do_tokenize = get_tokenization_fn(
+        tokenizer=tokenizer,
+        padding="max_length",
+        truncation=True,
+        max_length=64,
+        message_column="preprocessed"
+    )
+
+    # load model
+    model = AutoModelForSequenceClassification.from_pretrained(
+        args.checkpoint,
+        problem_type="multi_label_classification",
+        num_labels=len(labels)
+    )  # sumnjivo tho  -- ma moze
+
+    model = model.to("cuda")
+    # removed torch.compile because its not even faster and it doesnt really work with adapters
+
+    logger.warning(f"Model successfully loaded. ")
 
     for dataset_name, dataset_path in zip(args.dataset_names, args.dataset_paths):
         # evaluate checkpoint on dataset
-        tokenizer = AutoTokenizer.from_pretrained(
-            args.checkpoint,
-            model_max_length=64,
-            do_lower_case=True,
-        )
-
-        do_tokenize = get_tokenization_fn(
-            tokenizer=tokenizer,
-            padding="max_length",
-            truncation=True,
-            max_length=64,
-            message_column="preprocessed"
-        )
-
-        # load model
-        model = AutoModelForSequenceClassification.from_pretrained(
-            args.checkpoint,
-            problem_type="multi_label_classification",
-            num_labels=len(labels)
-        )  # sumnjivo tho  -- ma moze
-
-        model = model.to("cuda")
-        # removed torch.compile because its not even faster and it doesnt really work with adapters
-
-        logger.warning(f"Model successfully loaded. ")
-
         # load datasets
         do_preprocess = pipeline(
             pd.read_csv,
