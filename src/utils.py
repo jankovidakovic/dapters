@@ -108,9 +108,10 @@ def get_labels(labels_path) -> list[str]:
         labels = json.load(f)
 
     # sort labels
-    labels = sorted(labels["labels"])
+    # labels = sorted(labels["labels"])
+    labels = labels["labels"]  # lets not sort labels anymore
 
-    logger.info(f"Sorted labels = {pformat(labels)}")
+    logger.info(f"labels = {pformat(labels)}")
 
     return labels
 
