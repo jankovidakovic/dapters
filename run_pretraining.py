@@ -1,4 +1,5 @@
 import logging
+import os
 
 import pandas as pd
 from math import ceil
@@ -85,6 +86,10 @@ def main():
             run_name=args.mlflow_run_name,
             description=args.mlflow_run_description
         )
+
+        os.makedirs(args.output_dir, exist_ok=True)
+        with open(f"{args.output_dir}/mlflow_run_id.txt", "w") as f:
+            f.write(mlflow.active_run().info.run_id)
 
         mlflow.log_params(vars(args))
 
