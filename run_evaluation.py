@@ -67,6 +67,13 @@ def main():
         help="Path to JSON file containing the labels."
     )
 
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=128,
+        help="Batch size for evaluation. Default is 128."
+    )
+
     args = parser.parse_args()
 
     setup_logging(None)
@@ -106,7 +113,7 @@ def main():
             args.checkpoint,
             problem_type="multi_label_classification",
             num_labels=len(labels)
-        )  # sumnjivo tho
+        )  # sumnjivo tho  -- ma moze
 
         model = model.to("cuda")
         # removed torch.compile because its not even faster and it doesnt really work with adapters
@@ -116,7 +123,6 @@ def main():
         # load datasets
         do_preprocess = pipeline(
             pd.read_csv,
-            DataFrame.dropna,
             multihot_to_list(
                 label_columns=labels,
                 result_column="labels"
@@ -132,7 +138,7 @@ def main():
 
         dataloader = DataLoader(
             dataset,
-            batch_size=128,
+            batch_size=args.batch_size,
             shuffle=False,
             num_workers=4,
             pin_memory=True,

@@ -323,4 +323,12 @@ def add_adapter_args(parser):
         help="Name of the adapter to train. Defaults to None."
     )
 
+    group.add_argument(
+        "--pretrained_adapter_path",
+        type=str,
+        required=False,
+        help="If provided, pretrained (language) adapter will be loaded from the given path."
+             "During training, adapters will be stacked, and only the fine-tuning adapter will be trained."
+    )
+
     # thats everything

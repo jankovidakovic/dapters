@@ -1,4 +1,5 @@
 import logging
+import os
 from functools import partial
 from pprint import pformat
 
@@ -7,7 +8,7 @@ import torch
 from pandas import DataFrame
 from transformers import (
     set_seed,
-    AutoModelForSequenceClassification, AdapterConfig, AutoAdapterModel,
+    AdapterConfig, AutoAdapterModel,
 )
 
 from src.cli import parse_args
@@ -67,7 +68,17 @@ def main():
     logger.warning(f"Loaded the following adapter config: {adapter_config}")
     model.add_adapter(args.adapter_name, adapter_config)
     model.add_classification_head(args.adapter_name, num_labels=len(labels), multilabel=True)
-    model.train_adapter(args.adapter_name)
+
+    if args.pretrained_adapter_path:
+        logger.warning(f"Loading pretrained adapter from {os.path.abspath(args.pretrained_adapter_path)}")
+        model.load_adapter(args.pretrained_adapter_path, load_as="pt", set_active=True)
+
+    model.train_adapter(args.adapter_name)  # training the fine-tuning adapter
+    if args.pretrained_adapter_path:
+        model.set_active_adapters(["pt", args.adapter_name])
+    else:
+        model.set_active_adapters([args.adapter_name])
+
     logger.warning(pformat(model.adapter_summary()))
 
     if args.use_torch_compile:
