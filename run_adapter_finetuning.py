@@ -58,7 +58,7 @@ def main():
     # initialize model
     model = AutoAdapterModel.from_pretrained(
         args.pretrained_model_name_or_path,
-        num_labels=len(labels),
+        # num_labels=len(labels),
         cache_dir=args.cache_dir,
         problem_type="multi_label_classification"
     )
@@ -71,15 +71,16 @@ def main():
 
     if args.pretrained_adapter_path:
         logger.warning(f"Loading pretrained adapter from {os.path.abspath(args.pretrained_adapter_path)}")
-        model.load_adapter(args.pretrained_adapter_path, load_as="pt", set_active=True)
+        model.load_adapter(args.pretrained_adapter_path, load_as="pt")
 
-    model.train_adapter(args.adapter_name)  # training the fine-tuning adapter
+    model.train_adapter(args.adapter_name)   # training the fine-tuning adapter)
     if args.pretrained_adapter_path:
         model.set_active_adapters(["pt", args.adapter_name])
     else:
         model.set_active_adapters([args.adapter_name])
 
-    logger.warning(pformat(model.adapter_summary()))
+    logger.warning(model.adapter_summary())
+
 
     if args.use_torch_compile:
         model = torch.compile(model)
@@ -88,6 +89,8 @@ def main():
     # TODO - look into torch.compile options
 
     logger.info(f"Model loaded successfully on device: {model.device}")
+
+    print(f"===================={model.config.num_labels = }====================")
 
     epoch_steps = len(train_dataset) // args.per_device_train_batch_size // args.gradient_accumulation_steps
 
