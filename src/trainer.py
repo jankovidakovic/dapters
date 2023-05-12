@@ -180,24 +180,12 @@ def train(
                     f"Epoch = {epoch} (LR = {scheduler.get_last_lr()[-1]:.8f}; loss = {loss.item():.4f})"
                 )
 
-            if save_steps and global_step % save_steps == 0:
-                logger.warning(f"Saving checkpoint at global step {global_step}...")
-                save_checkpoint(
-                    model=model,  # noqa
-                    output_dir=output_dir,
-                    global_step=global_step,
-                    tokenizer=tokenizer,
-                    use_mlflow=use_mlflow,
-                    model_saving_callback=model_saving_callback
-                )
-
-
         # save checkpoint at the end of the epoch
         logger.warning(f"Saving checkpoint at the end of epoch {epoch}...")
         save_checkpoint(
             model=model,  # noqa
             output_dir=output_dir,
-            global_step=global_step,
+            global_step=epoch,
             tokenizer=tokenizer,
             use_mlflow=use_mlflow,
             model_saving_callback=model_saving_callback
