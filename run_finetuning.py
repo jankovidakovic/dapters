@@ -22,7 +22,10 @@ logger = logging.getLogger(__name__)
 def main():
     args = parse_args("finetuning")
 
-    setup_logging(args)
+    os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
+    # removed setup_logging because hydra does that for me
 
     set_seed(args.random_seed)  # oh but this actually already works because argparse has __getattr__ implemented
 
