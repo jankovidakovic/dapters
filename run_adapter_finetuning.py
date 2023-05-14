@@ -1,7 +1,6 @@
 import logging
 import os
 from functools import partial
-from pprint import pformat
 
 import pandas as pd
 import torch
@@ -134,7 +133,6 @@ def main():
         per_device_train_batch_size=args.per_device_train_batch_size,
         per_device_eval_batch_size=args.per_device_eval_batch_size,
         epochs=args.epochs,
-        save_steps=args.save_steps,
         output_dir=args.output_dir,
         max_grad_norm=args.max_grad_norm,
         do_evaluate=evaluate_finetuning(
