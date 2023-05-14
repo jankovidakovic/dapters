@@ -1,5 +1,6 @@
 import logging
 import os
+from functools import partial
 
 import hydra
 import pandas as pd
@@ -11,11 +12,11 @@ from transformers import (
     AutoModelForSequenceClassification,
 )
 
+from src.models import setup_model
 from src.preprocess.steps import multihot_to_list, to_hf_dataset, hf_map, convert_to_torch, sequence_columns
 from src.trainer import train, fine_tuning_loss, evaluate_finetuning
 from src.utils import get_labels, get_tokenization_fn, setup_optimizers, maybe_tf32, get_tokenizer, \
-    pipeline, mean_binary_cross_entropy
-
+    pipeline, mean_binary_cross_entropy, save_adapter_model, save_transformer_model
 
 logger = logging.getLogger(__name__)
 
@@ -61,21 +62,7 @@ def main(args: DictConfig):
     train_dataset = do_preprocess(args.train_dataset_path)
     eval_dataset = do_preprocess(args.eval_dataset_path)
 
-    # initialize model
-    model = AutoModelForSequenceClassification.from_pretrained(
-        args.pretrained_model_name_or_path,
-        num_labels=len(labels),
-        cache_dir=args.cache_dir,
-        problem_type="multi_label_classification"
-    )
-
-    if args.use_torch_compile:
-        model = torch.compile(model)
-
-    model = model.to(args.device)
-    # TODO - look into torch.compile options
-
-    logger.info(f"Model loaded successfully on device: {model.device}")
+    model = setup_model(args)  # works both with adapters and non-adapters
 
     epoch_steps = len(train_dataset) // args.per_device_train_batch_size // args.gradient_accumulation_steps
 
@@ -135,6 +122,9 @@ def main(args: DictConfig):
         evaluate_on_train=args.evaluate_on_train,
         early_stopping_start=args.early_stopping_start,
         dataloader_num_workers=args.dataloader_num_workers,
+        model_saving_callback=partial(save_adapter_model, adapter_name=args.adapters.adapter_name)
+        if hasattr(args, "adapters")
+        else save_transformer_model
     )
 
     logger.warning("Training complete.")
