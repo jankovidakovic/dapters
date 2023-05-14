@@ -6,9 +6,7 @@ from pprint import pformat
 import mlflow
 import pandas as pd
 from torch.utils.data import DataLoader
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, DefaultDataCollator, AutoAdapterModel, \
-    AdapterConfig
-
+from transformers import AutoTokenizer, DefaultDataCollator, AutoAdapterModel
 from src.preprocess.steps import multihot_to_list, to_hf_dataset, hf_map, convert_to_torch, sequence_columns
 from src.trainer import evaluate_finetuning
 from src.utils import setup_logging, get_labels, get_tokenization_fn, pipeline
@@ -98,15 +96,15 @@ def main():
         run_id=args.mlflow_run_id,
     )
 
-    checkpoint_name = os.path.abspath(args.checkpoint)
+    checkpoint_name = os.path.abspath(args.finetuned_adapter_path)
     logger.warning(f"Running evaluation for checkpoint: {checkpoint_name}")
 
     # extract checkpoint step
-    checkpoint_step = args.checkpoint.split("/")[-1].split("-")[0]
+    checkpoint_step = checkpoint_name.split("/")[-1].split("-")[0]
 
 
     tokenizer = AutoTokenizer.from_pretrained(
-        args.checkpoint,
+        args.model_name,
         model_max_length=64,
         do_lower_case=True,
     )
@@ -121,25 +119,27 @@ def main():
 
     # load model
     model = AutoAdapterModel.from_pretrained(
-        args.checkpoint,
+        args.model_name,
         problem_type="multi_label_classification",
         num_labels=len(labels)
     )
 
-    model.load_adapter(args.finetuned_adapter_name, load_as="ft", with_head=True)
+    model.load_adapter(args.finetuned_adapter_path, load_as="ft", with_head=True)
 
     if args.pretrained_adapter_path:
         logger.warning(f"Loading pretrained adapter from {os.path.abspath(args.pretrained_adapter_path)}")
         model.load_adapter(args.pretrained_adapter_path, load_as="pt")
 
     if args.pretrained_adapter_path:
-        model.set_active_adapters(["pt", args.finetuned_adapter_name])
+        model.set_active_adapters(["pt", "ft"])
     else:
-        model.set_active_adapters([args.finetuned_adapter_name])
+        model.set_active_adapters(["ft"])
 
     model = model.to("cuda")
 
     logger.warning(f"Model successfully loaded. ")
+
+    logger.warning(model.adapter_summary())
 
     for dataset_name, dataset_path in zip(args.dataset_names, args.dataset_paths):
         # evaluate checkpoint on dataset
@@ -189,7 +189,7 @@ def main():
 
         logger.warning(f"evaluation finished for {dataset_name}")
 
-    logger.warning(f"Evaluated all datasets on checkpoint {args.checkpoint}")
+    logger.warning(f"Evaluated all datasets on checkpoint {args.finetuned_adapter_path}")
     mlflow.end_run()
 
 
