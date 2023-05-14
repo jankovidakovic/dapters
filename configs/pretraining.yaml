@@ -1,0 +1,8 @@
+defaults:
+  - data
+  - config
+  - model_and_tokenizer
+  - optimizer
+  - training
+  - _self_
+mlm_probability: 0.15

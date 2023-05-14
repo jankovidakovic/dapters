@@ -1,0 +1,12 @@
+defaults:
+  - data
+  - config
+  - model_and_tokenizer
+  - optimizer
+  - training
+  - mlflow
+  - _self_
+labels_path: /data2/jvidakovic/dapters/data/fixed_labels/labels.json
+num_labels: 19
+message_column: preprocessed
+evaluation_threshold: 0.75

@@ -1,0 +1,4 @@
+device: cuda
+use_tf32: True
+use_torch_compile: False
+random_seed: 42

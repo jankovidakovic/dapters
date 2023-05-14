@@ -1,0 +1,15 @@
+defaults:
+  - config
+  - data: ???
+  - model_and_tokenizer
+  - optimizer
+  - training
+  - adapters  # ide gas
+  - _self_
+
+labels_path: /data2/jvidakovic/dapters/data/fixed_labels/labels.json
+num_labels: 19
+evaluation_threshold: 0.75
+message_column: preprocessed
+
+# ovo je predobro
