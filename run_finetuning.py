@@ -4,12 +4,10 @@ from functools import partial
 
 import hydra
 import pandas as pd
-import torch
 from omegaconf import DictConfig, OmegaConf
 from pandas import DataFrame
 from transformers import (
     set_seed,
-    AutoModelForSequenceClassification,
 )
 
 from src.models import setup_model
@@ -59,8 +57,8 @@ def main(args: DictConfig):
         convert_to_torch(columns=sequence_columns)
     )
 
-    train_dataset = do_preprocess(args.train_dataset_path)
-    eval_dataset = do_preprocess(args.eval_dataset_path)
+    train_dataset = do_preprocess(args.data.train_dataset_path)
+    eval_dataset = do_preprocess(args.data.eval_dataset_path)
 
     model = setup_model(args)  # works both with adapters and non-adapters
 
