@@ -153,7 +153,6 @@ def save_adapter_model(model, output_dir, adapter_name):
 def save_checkpoint(
         model: PreTrainedModel,
         global_step: int,
-        tokenizer: PreTrainedTokenizer,
         use_mlflow: bool = False,
         model_saving_callback: Callable = save_transformer_model
 ):
@@ -165,8 +164,6 @@ def save_checkpoint(
 
     model_saving_callback(model, output_dir)
     logger.info(f"Saved model checkpoint to {output_dir}")
-    tokenizer.save_pretrained(output_dir)
-    logger.warning(f"Saved tokenizer to {output_dir}")
 
     if use_mlflow:
         import mlflow

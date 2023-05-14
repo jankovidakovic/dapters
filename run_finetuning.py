@@ -115,7 +115,6 @@ def main(args: DictConfig):
 
     train(
         model=model,
-        tokenizer=tokenizer,
         optimizer=optimizer,
         scheduler=scheduler,
         train_dataset=train_dataset,

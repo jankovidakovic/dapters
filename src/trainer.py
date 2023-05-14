@@ -60,7 +60,6 @@ def pretraining_loss():
 
 def train(
         model: nn.Module,
-        tokenizer: PreTrainedTokenizer,
         optimizer: torch.optim.Optimizer,
         scheduler: LRScheduler,
         train_dataset: Dataset,
@@ -183,7 +182,6 @@ def train(
         save_checkpoint(
             model=model,  # noqa
             global_step=epoch,
-            tokenizer=tokenizer,
             use_mlflow=use_mlflow,
             model_saving_callback=model_saving_callback
         )
