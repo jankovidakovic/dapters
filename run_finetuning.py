@@ -1,26 +1,30 @@
 import logging
 import os
 
+import hydra
 import pandas as pd
 import torch
+from omegaconf import DictConfig, OmegaConf
 from pandas import DataFrame
 from transformers import (
     set_seed,
     AutoModelForSequenceClassification,
 )
 
-from src.cli import parse_args
 from src.preprocess.steps import multihot_to_list, to_hf_dataset, hf_map, convert_to_torch, sequence_columns
 from src.trainer import train, fine_tuning_loss, evaluate_finetuning
-from src.utils import setup_logging, get_labels, get_tokenization_fn, setup_optimizers, maybe_tf32, get_tokenizer, \
+from src.utils import get_labels, get_tokenization_fn, setup_optimizers, maybe_tf32, get_tokenizer, \
     pipeline, mean_binary_cross_entropy
 
 
 logger = logging.getLogger(__name__)
 
 
-def main():
-    args = parse_args("finetuning")
+@hydra.main(version_base="1.3", config_path="configs", config_name="finetuning")
+def main(args: DictConfig):
+    # lets see if this actually works now
+    # args = parse_args("finetuning")
+    logger.info(OmegaConf.to_yaml(args))
 
     os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -87,24 +91,27 @@ def main():
         scheduler_type=args.scheduler_type
     )
 
-    # set up mlflow
-    if use_mlflow := (args.mlflow_experiment is not None):
+    if use_mlflow := hasattr(args, "mlflow"):
         import mlflow
-        mlflow.set_tracking_uri(args.mlflow_tracking_uri)
-        mlflow_experiment = mlflow.set_experiment(args.mlflow_experiment)
+        mlflow.set_tracking_uri(args.mlflow.tracking_uri)
+        mlflow_experiment = mlflow.set_experiment(args.mlflow.experiment)
 
         mlflow.start_run(
             experiment_id=mlflow_experiment.experiment_id,
-            run_name=args.mlflow_run_name,
-            description=args.mlflow_run_description
+            run_name=args.mlflow.run_name,
+            description=args.mlflow.run_description
         )
 
-        # save MLFLow run id to the output directory
-        os.makedirs(args.output_dir, exist_ok=True)
-        with open(f"{args.output_dir}/mlflow_run_id.txt", "w") as f:
-            f.write(mlflow.active_run().info.run_id)
+        # aha i can actually log to hydra, right?
 
-        mlflow.log_params(vars(args))
+        # log run_id to logging file, to be found later by grep
+        logger.info(f"MLFlow run_id={mlflow.active_run().info.run_id}")
+
+        # mlflow.log_params(vars(args))
+        mlflow.log_dict(OmegaConf.to_container(args, resolve=True), "args")
+
+    # this can be "with maybe_mlflow(args)"
+    # or it can be a decorator
 
     train(
         model=model,
@@ -116,8 +123,6 @@ def main():
         per_device_train_batch_size=args.per_device_train_batch_size,
         per_device_eval_batch_size=args.per_device_eval_batch_size,
         epochs=args.epochs,
-        save_steps=args.save_steps,
-        output_dir=args.output_dir,
         max_grad_norm=args.max_grad_norm,
         do_evaluate=evaluate_finetuning(
             evaluation_threshold=args.evaluation_threshold,

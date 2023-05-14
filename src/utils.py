@@ -6,6 +6,7 @@ from typing import Callable
 import logging
 import os
 
+import hydra
 import numpy as np
 import pandas as pd
 import torch
@@ -151,26 +152,25 @@ def save_adapter_model(model, output_dir, adapter_name):
 
 def save_checkpoint(
         model: PreTrainedModel,
-        output_dir: str,
         global_step: int,
         tokenizer: PreTrainedTokenizer,
         use_mlflow: bool = False,
         model_saving_callback: Callable = save_transformer_model
 ):
     checkpoint_name = f"{global_step}-ckpt"  # changed the scheme
+    output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir  # okay cool
     output_dir = os.path.join(output_dir, checkpoint_name)  # moze
     output_dir = os.path.abspath(output_dir)
     os.makedirs(output_dir, exist_ok=True)
+
     model_saving_callback(model, output_dir)
     logger.info(f"Saved model checkpoint to {output_dir}")
-
     tokenizer.save_pretrained(output_dir)
     logger.warning(f"Saved tokenizer to {output_dir}")
 
     if use_mlflow:
         import mlflow
         mlflow.log_artifacts(output_dir, artifact_path=checkpoint_name)
-
 
 def dynamic_import(
         module_name: str = "data_preprocessing_pipeline",

@@ -68,9 +68,7 @@ def train(
         per_device_train_batch_size: int,
         per_device_eval_batch_size: int,
         epochs: int,
-        output_dir: str,
         get_loss: Callable[[BatchEncoding, ModelOutput], torch.Tensor],
-        save_steps: Optional[int] = None,
         max_grad_norm: Optional[float] = None,
         early_stopping_patience: Optional[int] = None,
         metric_for_best_model: str = "macro-f1",
@@ -184,7 +182,6 @@ def train(
         logger.warning(f"Saving checkpoint at the end of epoch {epoch}...")
         save_checkpoint(
             model=model,  # noqa
-            output_dir=output_dir,
             global_step=epoch,
             tokenizer=tokenizer,
             use_mlflow=use_mlflow,
