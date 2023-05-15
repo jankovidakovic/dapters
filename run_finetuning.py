@@ -99,6 +99,7 @@ def main(args: DictConfig):
     # or it can be a decorator
 
     train(
+        args=args,
         model=model,
         optimizer=optimizer,
         scheduler=scheduler,
@@ -112,13 +113,9 @@ def main(args: DictConfig):
             evaluation_threshold=args.evaluation_threshold,
         ),
         get_loss=fine_tuning_loss(loss_fn=mean_binary_cross_entropy),
-        early_stopping_patience=args.early_stopping_patience,
-        metric_for_best_model=args.metric_for_best_model,
-        greater_is_better=args.greater_is_better,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         use_mlflow=use_mlflow,
         evaluate_on_train=args.evaluate_on_train,
-        early_stopping_start=args.early_stopping_start,
         dataloader_num_workers=args.dataloader_num_workers,
         model_saving_callback=partial(save_adapter_model, adapter_name=args.adapters.adapter_name)
         if hasattr(args, "adapters")

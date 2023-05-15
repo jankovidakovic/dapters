@@ -59,6 +59,7 @@ def pretraining_loss():
 
 
 def train(
+        args,
         model: nn.Module,
         optimizer: torch.optim.Optimizer,
         scheduler: LRScheduler,
@@ -69,18 +70,12 @@ def train(
         epochs: int,
         get_loss: Callable[[BatchEncoding, ModelOutput], torch.Tensor],
         max_grad_norm: Optional[float] = None,
-        early_stopping_patience: Optional[int] = None,
-        metric_for_best_model: str = "macro-f1",
-        greater_is_better: bool = True,
         gradient_accumulation_steps: int = 1,
         do_evaluate: Optional[Callable[[nn.Module, DataLoader], dict[str, float]]] = None,
-        # would be cool if do_evaluate only took in model and dataset
-        # and other parameters (e.g. batch_size) were set by currying
         use_mlflow: bool = False,
         evaluate_on_train: bool = False,
         collate_fn: Optional[DataCollator] = None,
         use_ray_tune: bool = False,
-        early_stopping_start: int = 0,
         model_saving_callback: Callable = save_transformer_model,
         dataloader_num_workers: int = 8,
 ):
@@ -88,12 +83,12 @@ def train(
     early_stopping_step: Optional[int]
     best_metric_value: Optional[float]
 
-    if early_stopping_patience:
-        logger.warning(f"Early stopping is enabled with patience of {early_stopping_patience}."
-                       f"Metric for best model is {metric_for_best_model}, for which "
-                       f"{'higher' if greater_is_better else 'lower'} values are better.")
+    if use_early_stopping := hasattr(args, "early_stopping"):
+        logger.warning(f"Early stopping is enabled with patience of {args.early_stopping.patience}."
+                       f"Metric for best model is {args.early_stopping.metric_for_best_model}, for which "
+                       f"{'higher' if args.early_stopping.greater_is_better else 'lower'} values are better.")
         best_metric_value = np.inf
-        if greater_is_better:
+        if args.early_stopping.greater_is_better:
             best_metric_value *= -1
         early_stopping_step = 0
 
@@ -214,21 +209,21 @@ def train(
                     {"epoch": epoch, **metrics}
                 )  # this KILLS the run if the metrics are bad
 
-            if early_stopping_patience and epoch >= early_stopping_start:
-                current_metric_value = metrics[metric_for_best_model]
+            if use_early_stopping and epoch >= args.early_stopping.start:
+                current_metric_value = metrics[args.early_stopping.metric_for_best_model]
                 if not is_improved(
                     current_metric_value,
                     best_metric_value,  # noqa
-                    greater_is_better
+                    args.early_stopping.greater_is_better
                 ):
                     early_stopping_step += 1  # noqa
-                    if early_stopping_step == early_stopping_patience:
+                    if early_stopping_step == args.early_stopping.patience:
                         # early stopping
                         logger.warning(f"Early stopping patience has reached the critical threshold of "
-                                       f"{early_stopping_patience}. Stopping the run.")
+                                       f"{args.early_stopping.patience}. Stopping the run.")
                         return
                 else:
-                    logger.warning(f"""Resetting early stopping patience based on {metric_for_best_model}.
+                    logger.warning(f"""Resetting early stopping patience based on {args.early_stopping.metric_for_best_model}.
                                    Current value: {current_metric_value}
                                    Best_value: {best_metric_value}""")
                     early_stopping_step = 0

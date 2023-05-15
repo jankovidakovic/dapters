@@ -3,9 +3,5 @@ per_device_eval_batch_size: 512
 max_grad_norm: 1
 dataloader_num_workers: 8
 epochs: 10
-early_stopping_patience: 3
-metric_for_best_model: eval_weighted-f1
-greater_is_better: True
-early_stopping_start: 0
 gradient_accumulation_steps: 1
 evaluate_on_train: True
