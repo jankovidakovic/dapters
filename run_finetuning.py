@@ -66,14 +66,14 @@ def main(args: DictConfig):
 
     optimizer, scheduler = setup_optimizers(
         model,
-        lr=args.learning_rate,
-        weight_decay=args.weight_decay,
-        adam_epsilon=args.adam_epsilon,
+        lr=args.optimizer.learning_rate,
+        weight_decay=args.optimizer.weight_decay,
+        adam_epsilon=args.optimizer.adam_epsilon,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
-        warmup_percentage=args.warmup_percentage,
+        warmup_percentage=args.optimizer.warmup_percentage,
         epochs=args.epochs,
         epoch_steps=epoch_steps,
-        scheduler_type=args.scheduler_type
+        scheduler_type=args.optimizer.scheduler_type
     )
 
     if use_mlflow := hasattr(args, "mlflow"):
@@ -92,8 +92,11 @@ def main(args: DictConfig):
         # log run_id to logging file, to be found later by grep
         logger.info(f"MLFlow run_id={mlflow.active_run().info.run_id}")
 
-        # mlflow.log_params(vars(args))
-        mlflow.log_dict(OmegaConf.to_container(args, resolve=True), "args")
+        # predivno
+        mlflow.log_params(pd.json_normalize(OmegaConf.to_container(args, resolve=True), sep=".").to_dict(orient="records")[0])
+
+        # set the tags
+        mlflow.set_tags(args.mlflow.tags)
 
     # this can be "with maybe_mlflow(args)"
     # or it can be a decorator
