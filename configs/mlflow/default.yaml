@@ -4,6 +4,5 @@ tags:
   learning_rate: ${optimizer.learning_rate}
   weight_decay: ${optimizer.weight_decay}
   epochs: ${epochs}
-  optional early_stopping_patience: ${early_stopping.patience}
   warmup_percentage: ${optimizer.warmup_percentage}
-  optional reduction_factor: ${adapters.reduction_factor}
+  reduction_factor: ${adapters.reduction_factor}
