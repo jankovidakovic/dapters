@@ -2,4 +2,4 @@ defaults:
   - default
 learning_rate: ???
 scheduler_type: linear
-warmup_percentage: ???
+warmup_percentage: 0.05
