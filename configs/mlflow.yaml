@@ -1,9 +1,0 @@
-mlflow:
-  tracking_uri: http://localhost:34567
-  experiment: hydra-test
-  run_name: hydra-test
-  run_description: Testing the Hydra configs
-  tags:
-    test: hydra
-    hello: world
-    foo: bar
