@@ -1,0 +1,7 @@
+per_device_train_batch_size: 64
+per_device_eval_batch_size: 128
+max_grad_norm: 1
+dataloader_num_workers: 8
+epochs: 20
+gradient_accumulation_steps: 32  # gives effective batch size of 2048
+evaluate_on_train: True
