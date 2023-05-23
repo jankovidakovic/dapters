@@ -3,3 +3,5 @@ defaults:
 learning_rate: ???
 scheduler_type: linear
 warmup_percentage: 0.1  # like this
+adam_epsilon: 1e-6
+weight_decay: 0.01  # really?
