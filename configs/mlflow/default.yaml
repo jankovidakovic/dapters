@@ -1,7 +1,7 @@
 tracking_uri: http://localhost:34567
 tags:
-  batch_size: ${per_device_train_batch_size}
+  batch_size: ${training.per_device_train_batch_size}
   learning_rate: ${optimizer.learning_rate}
   weight_decay: ${optimizer.weight_decay}
-  epochs: ${epochs}
+  epochs: ${training.epochs}
   warmup_percentage: ${optimizer.warmup_percentage}
