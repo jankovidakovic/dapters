@@ -1,8 +1,13 @@
 defaults:
-  - data
   - config
+  - data: dummy
   - model_and_tokenizer
-  - optimizer
+  - optimizer: pretraining
   - training
+  - early_stopping
+  - mlflow: pretraining
   - _self_
+
 mlm_probability: 0.15
+epochs: 50
+gradient_accumulation_steps: 16  # effective batch size of 128*16=2048

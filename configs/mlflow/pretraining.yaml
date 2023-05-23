@@ -1,0 +1,6 @@
+defaults:
+  - default
+
+experiment: pretraining
+run_name: '[PT] BS=${per_device_train_batch_size}; LR=${optimizer.learning_rate}'
+run_description: 'Pretraining.'
