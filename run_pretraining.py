@@ -46,8 +46,8 @@ def main(args: DictConfig):
         convert_to_torch(columns=sequence_columns)
     )
 
-    train_dataset = do_preprocess(args.train_dataset_path)
-    eval_dataset = do_preprocess(args.eval_dataset_path)
+    train_dataset = do_preprocess(args.data.train_dataset_path)
+    eval_dataset = do_preprocess(args.data.eval_dataset_path)
 
     # initialize model
     model = AutoModelForMaskedLM.from_pretrained(
