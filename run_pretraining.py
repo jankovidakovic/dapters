@@ -1,24 +1,29 @@
 import logging
 import os
 
+import hydra
 import pandas as pd
 from math import ceil
+from omegaconf import OmegaConf, DictConfig
 from pandas import DataFrame
 from transformers import set_seed, DataCollatorForLanguageModeling, AutoModelForMaskedLM
 import torch
 
-from src.cli import parse_args
 from src.preprocess import hf_map, to_hf_dataset, sequence_columns, convert_to_torch
 from src.trainer import train, pretraining_loss, evaluate_pretraining
-from src.utils import setup_logging, maybe_tf32, get_tokenizer, get_tokenization_fn, pipeline, setup_optimizers
+from src.utils import maybe_tf32, get_tokenizer, get_tokenization_fn, pipeline, setup_optimizers
 
 logger = logging.getLogger(__name__)
 
 
-def main():
+@hydra.main(version_base="1.3", config_path="configs", config_name="pretraining")
+def main(args: DictConfig):
     # setup logging
-    args = parse_args("pretraining")
-    setup_logging(args)
+    logger.info(OmegaConf.to_yaml(args))
+
+    os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
     set_seed(args.random_seed)
     maybe_tf32(args)
 
@@ -64,41 +69,41 @@ def main():
     # TODO - make configurable
     optimizer, scheduler = setup_optimizers(
         model,
-        lr=args.learning_rate,
-        weight_decay=args.weight_decay,
-        adam_epsilon=args.adam_epsilon,
+        lr=args.optimizer.learning_rate,
+        weight_decay=args.optimizer.weight_decay,
+        adam_epsilon=args.optimizer.adam_epsilon,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
-        warmup_percentage=args.warmup_percentage,
+        warmup_percentage=args.optimizer.warmup_percentage,
         epochs=args.epochs,
         epoch_steps=epoch_steps,
-        scheduler_type=args.scheduler_type
+        scheduler_type=args.optimizer.scheduler_type
     )
 
-    if args.mlflow_experiment:
-        use_mlflow = True
+    if use_mlflow := hasattr(args, "mlflow"):
         import mlflow
-        # set up mlflow
-        mlflow.set_tracking_uri(args.mlflow_tracking_uri)
-        mlflow_experiment = mlflow.set_experiment(args.mlflow_experiment)
+        mlflow.set_tracking_uri(args.mlflow.tracking_uri)
+        mlflow_experiment = mlflow.set_experiment(args.mlflow.experiment)
 
         mlflow.start_run(
             experiment_id=mlflow_experiment.experiment_id,
-            run_name=args.mlflow_run_name,
-            description=args.mlflow_run_description
+            run_name=args.mlflow.run_name,
+            description=args.mlflow.run_description
         )
 
-        os.makedirs(args.output_dir, exist_ok=True)
-        with open(f"{args.output_dir}/mlflow_run_id.txt", "w") as f:
-            f.write(mlflow.active_run().info.run_id)
+        # aha i can actually log to hydra, right?
 
-        mlflow.log_params(vars(args))
+        # log run_id to logging file, to be found later by grep
+        logger.info(f"MLFlow run_id={mlflow.active_run().info.run_id}")
 
-    else:
-        use_mlflow = False
+        # predivno
+        mlflow.log_params(pd.json_normalize(OmegaConf.to_container(args, resolve=True), sep=".").to_dict(orient="records")[0])
+
+        # set the tags
+        mlflow.set_tags(args.mlflow.tags)
 
     train(
+        args=args,
         model=model,
-        tokenizer=tokenizer,
         optimizer=optimizer,
         scheduler=scheduler,
         train_dataset=train_dataset,
@@ -111,12 +116,7 @@ def main():
         per_device_train_batch_size=args.per_device_train_batch_size,
         per_device_eval_batch_size=args.per_device_eval_batch_size,
         epochs=args.epochs,
-        save_steps=args.save_steps,
-        output_dir=args.output_dir,
         max_grad_norm=args.max_grad_norm,
-        early_stopping_patience=args.early_stopping_patience,
-        metric_for_best_model=args.metric_for_best_model,
-        greater_is_better=args.greater_is_better,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         get_loss=pretraining_loss(),
         do_evaluate=evaluate_pretraining(),
