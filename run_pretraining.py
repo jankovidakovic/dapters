@@ -64,7 +64,7 @@ def main(args: DictConfig):
 
     logger.info(f"Model loaded successfully on device: {model.device}")
 
-    epoch_steps = ceil(len(train_dataset) / args.per_device_train_batch_size / args.gradient_accumulation_steps)
+    epoch_steps = ceil(len(train_dataset) / args.training.per_device_train_batch_size / args.training.gradient_accumulation_steps)
 
     # TODO - make configurable
     optimizer, scheduler = setup_optimizers(
@@ -72,9 +72,9 @@ def main(args: DictConfig):
         lr=args.optimizer.learning_rate,
         weight_decay=args.optimizer.weight_decay,
         adam_epsilon=args.optimizer.adam_epsilon,
-        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        gradient_accumulation_steps=args.training.gradient_accumulation_steps,
         warmup_percentage=args.optimizer.warmup_percentage,
-        epochs=args.epochs,
+        epochs=args.training.epochs,
         epoch_steps=epoch_steps,
         scheduler_type=args.optimizer.scheduler_type
     )
@@ -113,15 +113,15 @@ def main(args: DictConfig):
             mlm=True,
             mlm_probability=args.mlm_probability,
         ),
-        per_device_train_batch_size=args.per_device_train_batch_size,
-        per_device_eval_batch_size=args.per_device_eval_batch_size,
-        epochs=args.epochs,
-        max_grad_norm=args.max_grad_norm,
-        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        per_device_train_batch_size=args.training.per_device_train_batch_size,
+        per_device_eval_batch_size=args.training.per_device_eval_batch_size,
+        epochs=args.training.epochs,
+        max_grad_norm=args.training.max_grad_norm,
+        gradient_accumulation_steps=args.training.gradient_accumulation_steps,
         get_loss=pretraining_loss(),
         do_evaluate=evaluate_pretraining(),
         use_mlflow=use_mlflow,
-        dataloader_num_workers=args.dataloader_num_workers,
+        dataloader_num_workers=args.training.dataloader_num_workers,
     )
 
     logger.warning("Training complete.")
