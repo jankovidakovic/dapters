@@ -6,19 +6,14 @@ defaults:
   - training
   - adapters  # ide gas
   - mlflow: adapter_sweep
+  - early_stopping
   - _self_
 
-labels_path: ???
+labels_path: /data2/jvidakovic/dapters/data/labels.json
 num_labels: 19
 evaluation_threshold: 0.75
 message_column: preprocessed
-epochs: ???
+epochs: 100
 
 batch_size: 128
-
-hydra:
-  sweeper:
-    params:
-      optimizer.learning_rate: [8e-5, 1e-4, 2e-4, 3e-4, 6e-4]
-      adapters.reduction_factor: [2, 4, 8, 16, 32]
 

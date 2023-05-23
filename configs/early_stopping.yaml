@@ -1,5 +1,5 @@
 early_stopping:
   patience: 20
-  start: 0
+  start: 10
   metric_for_best_model: eval_weighted-f1
   greater_is_better: True

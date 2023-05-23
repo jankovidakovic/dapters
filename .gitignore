@@ -6,6 +6,7 @@ plots/
 distances/
 logs/
 
+
 #mlflow stuff
 mlartifacts/
 mlruns/
@@ -16,6 +17,9 @@ representations/
 
 # labels
 labels.json
+
+# hydra
+multirun/
 
 
 # Created by https://www.toptal.com/developers/gitignore/api/python,pycharm+all,visualstudiocode
