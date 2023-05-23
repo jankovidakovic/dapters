@@ -5,4 +5,4 @@ tags:
   weight_decay: ${optimizer.weight_decay}
   epochs: ${epochs}
   warmup_percentage: ${optimizer.warmup_percentage}
-  reduction_factor: ${adapters.reduction_factor}
+  optional reduction_factor: ${adapters.reduction_factor}
