@@ -1,7 +1,7 @@
 data_root: ???
 dataset_name: ???
-train_dataset_path: "${data_root}/${dataset_name}_train.csv"
-eval_dataset_path: "${data_root}/${dataset_name}_dev.csv"
-labels_path: "${data_root}/labels.json"
+train_dataset_path: "${data.data_root}/${data.dataset_name}_train.csv"
+eval_dataset_path: "${data.data_root}/${data.dataset_name}_dev.csv"
+labels_path: "${data.data_root}/labels.json"
 num_labels: 19
 message_column: preprocessed
