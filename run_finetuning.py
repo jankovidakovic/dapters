@@ -62,16 +62,16 @@ def main(args: DictConfig):
 
     model = setup_model(args)  # works both with adapters and non-adapters
 
-    epoch_steps = len(train_dataset) // args.per_device_train_batch_size // args.gradient_accumulation_steps
+    epoch_steps = len(train_dataset) // args.training.per_device_train_batch_size // args.training.gradient_accumulation_steps
 
     optimizer, scheduler = setup_optimizers(
         model,
         lr=args.optimizer.learning_rate,
         weight_decay=args.optimizer.weight_decay,
         adam_epsilon=args.optimizer.adam_epsilon,
-        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        gradient_accumulation_steps=args.training.gradient_accumulation_steps,
         warmup_percentage=args.optimizer.warmup_percentage,
-        epochs=args.epochs,
+        epochs=args.training.epochs,
         epoch_steps=epoch_steps,
         scheduler_type=args.optimizer.scheduler_type
     )
@@ -108,18 +108,18 @@ def main(args: DictConfig):
         scheduler=scheduler,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
-        per_device_train_batch_size=args.per_device_train_batch_size,
-        per_device_eval_batch_size=args.per_device_eval_batch_size,
-        epochs=args.epochs,
-        max_grad_norm=args.max_grad_norm,
+        per_device_train_batch_size=args.training.per_device_train_batch_size,
+        per_device_eval_batch_size=args.training.per_device_eval_batch_size,
+        epochs=args.training.epochs,
+        max_grad_norm=args.training.max_grad_norm,
         do_evaluate=evaluate_finetuning(
             evaluation_threshold=args.evaluation_threshold,
         ),
         get_loss=fine_tuning_loss(loss_fn=mean_binary_cross_entropy),
-        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        gradient_accumulation_steps=args.training.gradient_accumulation_steps,
         use_mlflow=use_mlflow,
-        evaluate_on_train=args.evaluate_on_train,
-        dataloader_num_workers=args.dataloader_num_workers,
+        evaluate_on_train=args.training.evaluate_on_train,
+        dataloader_num_workers=args.training.dataloader_num_workers,
         model_saving_callback=partial(save_adapter_model, adapter_name=args.adapters.adapter_name)
         if hasattr(args, "adapters")
         else save_transformer_model
