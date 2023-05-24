@@ -39,7 +39,7 @@ def add_adapter(model, adapter_args):
     adapter_config = AdapterConfig.load(adapter_args.config, reduction_factor=adapter_args.reduction_factor)
 
     logger.warning(f"Loaded the following adapter config: {adapter_config}")
-    model.add_adapter(adapter_args.config, adapter_config)
+    model.add_adapter(adapter_args.name, config=adapter_config)
 
     return model
 
