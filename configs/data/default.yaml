@@ -1,5 +1,7 @@
-train_dataset_path: ???
-eval_dataset_path: ???
-labels_path: /data2/jvidakovic/dapters/data/fixed_labels/labels.json
+data_root: ???
+dataset_name: ???
+train_dataset_path: "${data_root}/${dataset_name}_train.csv"
+eval_dataset_path: "${data_root}/${dataset_name}_dev.csv"
+labels_path: "${data_root}/labels.json"
 num_labels: 19
 message_column: preprocessed
