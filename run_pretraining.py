@@ -31,7 +31,7 @@ def main(args: DictConfig):
     set_seed(args.random_seed)
     maybe_tf32(args)
 
-    tokenizer = get_tokenizer(args)
+    tokenizer = get_tokenizer(args.model)
 
     do_tokenize = get_tokenization_fn(
         tokenizer=tokenizer,
