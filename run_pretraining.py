@@ -62,9 +62,10 @@ def main(args: DictConfig):
         )
         # we start from the model which is already pretrained
 
-        model = setup_adapter_pretraining(model, args.model.adapter)
-        model.add_masked_lm_head(args.adapter_name)
-        model.train_adapter(args.adapter_name)
+        model, adapter_setup = setup_adapter_pretraining(model, args.model.adapter)
+        model.add_masked_lm_head(args.model.adapter.name)
+        model.set_active_adapters(adapter_setup)
+        model.train_adapter(args.model.adapter.name)
         logger.warning(model.adapter_summary())
 
     else:
