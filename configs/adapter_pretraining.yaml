@@ -1,0 +1,11 @@
+defaults:
+  - config
+  - data: dummy
+  - model: adapter_pretraining
+  - optimizer: pretraining
+  - training: pretraining_mrvica
+  - early_stopping: pretraining
+  - _self_
+
+mlm_probability: 0.15
+message_column: preprocessed
