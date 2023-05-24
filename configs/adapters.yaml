@@ -1,4 +1,0 @@
-adapters:
-  adapter_config: pfeiffer
-  reduction_factor: 16
-  adapter_name: ft

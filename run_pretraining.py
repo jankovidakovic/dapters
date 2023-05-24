@@ -35,11 +35,11 @@ def main(args: DictConfig):
 
     do_tokenize = get_tokenization_fn(
         tokenizer=tokenizer,
-        padding=args.padding,  # noqa
+        padding=args.model.padding,  # noqa
         truncation=True,
-        max_length=args.max_length,
+        max_length=args.model.max_length,
         return_special_tokens_mask=True,
-        message_column=args.message_column
+        message_column=args.data.message_column
     )  # would be cool to abstract this also
 
     do_preprocess = pipeline(
@@ -57,8 +57,8 @@ def main(args: DictConfig):
 
     if is_adapter_pretraining := hasattr(args.model, "adapter"):
         model = AutoAdapterModel.from_pretrained(
-            args.pretrained_model_name_or_path,
-            cache_dir=args.cache_dir,
+            args.model.pretrained_model_name_or_path,
+            cache_dir=args.model.cache_dir,
         )
         # we start from the model which is already pretrained
 
@@ -69,8 +69,8 @@ def main(args: DictConfig):
 
     else:
         model = AutoModelForMaskedLM.from_pretrained(
-            args.pretrained_model_name_or_path,
-            cache_dir=args.cache_dir,
+            args.model.pretrained_model_name_or_path,
+            cache_dir=args.model.cache_dir,
         )
 
     model = maybe_compile(model, args)

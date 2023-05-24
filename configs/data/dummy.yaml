@@ -1,2 +1,4 @@
+defaults:
+  - default
 train_dataset_path: /data2/jvidakovic/dapters/data/fixed_labels/dummy_train.csv
 eval_dataset_path: /data2/jvidakovic/dapters/data/fixed_labels/dummy_dev.csv

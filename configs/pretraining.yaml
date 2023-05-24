@@ -9,4 +9,3 @@ defaults:
   - _self_
 
 mlm_probability: 0.15
-message_column: preprocessed

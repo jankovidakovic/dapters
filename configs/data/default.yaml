@@ -1,0 +1,5 @@
+train_dataset_path: ???
+eval_dataset_path: ???
+labels_path: /data2/jvidakovic/dapters/data/fixed_labels/labels.json
+num_labels: 19
+message_column: preprocessed
