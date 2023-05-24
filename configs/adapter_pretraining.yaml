@@ -5,7 +5,7 @@ defaults:
   - optimizer: pretraining
   - training: pretraining_mrvica
   - early_stopping: pretraining
+  - mlflow: adapter_pretraining
   - _self_
 
 mlm_probability: 0.15
-message_column: preprocessed
