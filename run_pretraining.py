@@ -6,14 +6,18 @@ import pandas as pd
 from math import ceil
 from omegaconf import OmegaConf, DictConfig
 from pandas import DataFrame
-from transformers import set_seed, DataCollatorForLanguageModeling, AutoModelForMaskedLM
-import torch
+from transformers import set_seed, DataCollatorForLanguageModeling, AutoModelForMaskedLM, AutoAdapterModel
 
+from src.models import maybe_compile, set_device
+from src.models.bottleneck_adapters import setup_adapter_pretraining
 from src.preprocess import hf_map, to_hf_dataset, sequence_columns, convert_to_torch
 from src.trainer import train, pretraining_loss, evaluate_pretraining
-from src.utils import maybe_tf32, get_tokenizer, get_tokenization_fn, pipeline, setup_optimizers
+from src.utils import maybe_tf32, get_tokenizer, get_tokenization_fn, pipeline, setup_optimizers, get_adapter_saver, \
+    save_transformer_model
 
 logger = logging.getLogger(__name__)
+
+# in theory, this should work with adapters as well, right?
 
 
 @hydra.main(version_base="1.3", config_path="configs", config_name="pretraining")
@@ -50,17 +54,27 @@ def main(args: DictConfig):
     eval_dataset = do_preprocess(args.data.eval_dataset_path)
 
     # initialize model
-    model = AutoModelForMaskedLM.from_pretrained(
-        args.pretrained_model_name_or_path,
-        cache_dir=args.cache_dir,
-    )
-    # we start from the model which is already pretrained
 
-    # compile model
-    if args.use_torch_compile:
-        model = torch.compile(model)
+    if is_adapter_pretraining := hasattr(args.model, "adapter"):
+        model = AutoAdapterModel.from_pretrained(
+            args.pretrained_model_name_or_path,
+            cache_dir=args.cache_dir,
+        )
+        # we start from the model which is already pretrained
 
-    model = model.to(args.device)
+        model = setup_adapter_pretraining(model, args.model.adapter)
+        model.add_masked_lm_head(args.adapter_name)
+        model.train_adapter(args.adapter_name)
+        logger.warning(model.adapter_summary())
+
+    else:
+        model = AutoModelForMaskedLM.from_pretrained(
+            args.pretrained_model_name_or_path,
+            cache_dir=args.cache_dir,
+        )
+
+    model = maybe_compile(model, args)
+    model = set_device(model, args)
 
     logger.info(f"Model loaded successfully on device: {model.device}")
 
@@ -122,6 +136,7 @@ def main(args: DictConfig):
         do_evaluate=evaluate_pretraining(),
         use_mlflow=use_mlflow,
         dataloader_num_workers=args.training.dataloader_num_workers,
+        model_saving_callback=get_adapter_saver(args.model.adapter.name) if is_adapter_pretraining else save_transformer_model
     )
 
     logger.warning("Training complete.")

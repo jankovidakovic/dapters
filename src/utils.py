@@ -149,6 +149,9 @@ def save_adapter_model(model, output_dir, adapter_name):
         with_head=True
     )
 
+def get_adapter_saver(adapter_name: str):
+    return lambda model, output_dir: save_adapter_model(model, output_dir, adapter_name)
+
 
 def save_checkpoint(
         model: PreTrainedModel,
