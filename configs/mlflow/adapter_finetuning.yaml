@@ -1,5 +1,5 @@
 defaults:
   - default
 experiment: adapter_finetuning
-run_name: '[A-FT] BS=${per_device_train_batch_size}; LR=${optimizer.learning_rate}'
+run_name: '[A-FT] BS=${training.per_device_train_batch_size}; LR=${optimizer.learning_rate}'
 run_description: 'Adapter finetuning.'
