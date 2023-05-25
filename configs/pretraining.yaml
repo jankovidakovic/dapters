@@ -1,6 +1,7 @@
 defaults:
   - misc
   - data: dummy
+  - tokenizer: default
   - model: default
   - optimizer: pretraining
   - training: pretraining_mrvica
