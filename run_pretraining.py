@@ -30,13 +30,13 @@ def main(args: DictConfig):
     set_seed(args.random_seed)
     maybe_tf32(args)
 
-    tokenizer = get_tokenizer(args.model)
+    tokenizer = get_tokenizer(args)
 
     do_tokenize = get_tokenization_fn(
         tokenizer=tokenizer,
-        padding=args.model.padding,  # noqa
+        padding=args.tokenizer.padding,  # noqa
         truncation=True,
-        max_length=args.model.max_length,
+        max_length=args.tokenizer.max_length,
         return_special_tokens_mask=True,
         message_column=args.data.message_column
     )  # would be cool to abstract this also
