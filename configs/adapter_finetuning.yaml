@@ -1,8 +1,7 @@
 defaults:
   - finetuning
+  - override mlflow: adapter_finetuning
   - _self_
-
-mlflow: adapter_finetuning
 
 model:
   adapters:
