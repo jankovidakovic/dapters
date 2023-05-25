@@ -10,8 +10,7 @@ from transformers import (
     set_seed, AutoAdapterModel, AutoModelForSequenceClassification,
 )
 
-from src.models import maybe_compile, set_device
-from src.models.bottleneck_adapters import setup_adapters
+from src.model_utils import setup_adapters, maybe_compile, set_device
 from src.preprocess.steps import multihot_to_list, to_hf_dataset, hf_map, convert_to_torch, sequence_columns
 from src.trainer import train, fine_tuning_loss, evaluate_finetuning
 from src.utils import get_labels, get_tokenization_fn, setup_optimizers, maybe_tf32, get_tokenizer, \

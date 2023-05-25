@@ -8,8 +8,7 @@ from omegaconf import OmegaConf, DictConfig
 from pandas import DataFrame
 from transformers import set_seed, DataCollatorForLanguageModeling, AutoModelForMaskedLM, AutoAdapterModel
 
-from src.models import maybe_compile, set_device
-from src.models.bottleneck_adapters import setup_adapters
+from src.model_utils import setup_adapters, maybe_compile, set_device
 from src.preprocess import hf_map, to_hf_dataset, sequence_columns, convert_to_torch
 from src.trainer import train, pretraining_loss, evaluate_pretraining
 from src.utils import maybe_tf32, get_tokenizer, get_tokenization_fn, pipeline, setup_optimizers, get_adapter_saver, \
