@@ -1,0 +1,5 @@
+defaults:
+  - default
+experiment: finetuning
+run_name: '[FT] BS=${per_device_train_batch_size}; LR=${optimizer.learning_rate}'
+run_description: 'Full fine-tuning.'

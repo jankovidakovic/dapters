@@ -9,7 +9,7 @@ from pandas import DataFrame
 from transformers import set_seed, DataCollatorForLanguageModeling, AutoModelForMaskedLM, AutoAdapterModel
 
 from src.models import maybe_compile, set_device
-from src.models.bottleneck_adapters import setup_adapter_pretraining
+from src.models.bottleneck_adapters import setup_adapters
 from src.preprocess import hf_map, to_hf_dataset, sequence_columns, convert_to_torch
 from src.trainer import train, pretraining_loss, evaluate_pretraining
 from src.utils import maybe_tf32, get_tokenizer, get_tokenization_fn, pipeline, setup_optimizers, get_adapter_saver, \
@@ -55,18 +55,12 @@ def main(args: DictConfig):
 
     # initialize model
 
-    if is_adapter_pretraining := hasattr(args.model, "adapter"):
+    if adapters_included := hasattr(args.model, "adapters"):
         model = AutoAdapterModel.from_pretrained(
             args.model.pretrained_model_name_or_path,
             cache_dir=args.model.cache_dir,
         )
-        # we start from the model which is already pretrained
-
-        model, adapter_setup = setup_adapter_pretraining(model, args.model.adapter)
-        model.set_active_adapters(adapter_setup)
-        model.train_adapter(args.model.adapter.name)
-        logger.warning(model.adapter_summary())
-
+        model = setup_adapters(model, args)
     else:
         model = AutoModelForMaskedLM.from_pretrained(
             args.model.pretrained_model_name_or_path,
@@ -136,7 +130,7 @@ def main(args: DictConfig):
         do_evaluate=evaluate_pretraining(),
         use_mlflow=use_mlflow,
         dataloader_num_workers=args.training.dataloader_num_workers,
-        model_saving_callback=get_adapter_saver(args.model.adapter.name) if is_adapter_pretraining else save_transformer_model
+        model_saving_callback=get_adapter_saver(args.model.adapter.name) if adapters_included else save_transformer_model
     )
 
     logger.warning("Training complete.")

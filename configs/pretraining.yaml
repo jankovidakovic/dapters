@@ -1,5 +1,5 @@
 defaults:
-  - config
+  - misc
   - data: dummy
   - model: default
   - optimizer: pretraining

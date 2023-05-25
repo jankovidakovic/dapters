@@ -123,7 +123,7 @@ def get_tokenization_fn(
         truncation: bool = True,
         max_length: int = 64,
         return_special_tokens_mask: bool = False,
-        message_column: str = "message"
+        message_column: str = "preprocessed"
 ):
     def tokenize(examples):
         return tokenizer(
@@ -246,6 +246,8 @@ def get_tokenizer(args) -> PreTrainedTokenizer:
         do_lower_case=args.do_lower_case,
         cache_dir=args.cache_dir,
     )
+
+# here we need to decouple model and tokenizer, becasue we didnt save tokenizer
 
 
 def set_device(

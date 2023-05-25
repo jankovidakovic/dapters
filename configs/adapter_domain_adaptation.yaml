@@ -1,11 +1,14 @@
 defaults:
-  - pretraining
+  - finetuning
 
 model:
   adapters:
     pretraining:
+      pretrained_path: ???
+      with_head: False
+    finetuning:
       config: pfeiffer
       reduction_factor: ???
       with_head: True
     train:
-      - pretraining
+      - finetuning

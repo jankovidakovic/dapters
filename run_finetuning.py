@@ -7,17 +7,17 @@ import pandas as pd
 from omegaconf import DictConfig, OmegaConf
 from pandas import DataFrame
 from transformers import (
-    set_seed,
+    set_seed, AutoAdapterModel, AutoModelForSequenceClassification,
 )
 
-from src.models import setup_model
+from src.models import maybe_compile, set_device
+from src.models.bottleneck_adapters import setup_adapters
 from src.preprocess.steps import multihot_to_list, to_hf_dataset, hf_map, convert_to_torch, sequence_columns
 from src.trainer import train, fine_tuning_loss, evaluate_finetuning
 from src.utils import get_labels, get_tokenization_fn, setup_optimizers, maybe_tf32, get_tokenizer, \
     pipeline, mean_binary_cross_entropy, save_adapter_model, save_transformer_model
 
 logger = logging.getLogger(__name__)
-
 
 @hydra.main(version_base="1.3", config_path="configs", config_name="finetuning")
 def main(args: DictConfig):
@@ -60,10 +60,26 @@ def main(args: DictConfig):
     train_dataset = do_preprocess(args.data.train_dataset_path)
     eval_dataset = do_preprocess(args.data.eval_dataset_path)
 
-    model = setup_model(args)  # works both with adapters and non-adapters
+    if adapters_included := hasattr(args.model, "adapters"):
+        model = AutoAdapterModel.from_pretrained(
+            args.model.pretrained_model_name_or_path,
+            cache_dir=args.model.cache_dir,
+        )
+        model = setup_adapters(model, args)
+    else:
+        model = AutoModelForSequenceClassification.from_pretrained(
+            args.model.pretrained_model_name_or_path,
+            cache_dir=args.model.cache_dir,
+            problem_type="multi_label_classification",
+            num_labels=args.data.num_labels
+        )
+
+    model = maybe_compile(model, args)
+    model = set_device(model, args)
+
+    # TODO - fix this for "domain adaptation"
 
     epoch_steps = len(train_dataset) // args.training.per_device_train_batch_size // args.training.gradient_accumulation_steps
-
     optimizer, scheduler = setup_optimizers(
         model,
         lr=args.optimizer.learning_rate,
@@ -121,7 +137,7 @@ def main(args: DictConfig):
         evaluate_on_train=args.training.evaluate_on_train,
         dataloader_num_workers=args.training.dataloader_num_workers,
         model_saving_callback=partial(save_adapter_model, adapter_name=args.adapters.adapter_name)
-        if hasattr(args, "adapters")
+        if adapters_included
         else save_transformer_model
     )
 
