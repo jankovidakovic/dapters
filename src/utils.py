@@ -241,10 +241,10 @@ def maybe_tf32(args):
 
 def get_tokenizer(args) -> PreTrainedTokenizer:
     return AutoTokenizer.from_pretrained(
-        args.pretrained_model_name_or_path,
-        model_max_length=args.max_length,
-        do_lower_case=args.do_lower_case,
-        cache_dir=args.cache_dir,
+        args.tokenizer.pretrained_model_name_or_path,
+        model_max_length=args.tokenizer.max_length,
+        do_lower_case=args.tokenizer.do_lower_case,
+        cache_dir=args.tokenizer.cache_dir,
     )
 
 # here we need to decouple model and tokenizer, becasue we didnt save tokenizer

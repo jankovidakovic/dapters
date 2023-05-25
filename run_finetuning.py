@@ -37,12 +37,12 @@ def main(args: DictConfig):
 
     do_tokenize = get_tokenization_fn(
         tokenizer=tokenizer,
-        padding=args.padding,  # noqa
+        padding=args.tokenizer.padding,  # noqa
         truncation=True,
-        max_length=args.max_length,
-        message_column=args.message_column
+        max_length=args.tokenizer.max_length,
+        message_column=args.data.message_column
     )
-    labels = get_labels(args.labels_path)
+    labels = get_labels(args.data.labels_path)
 
     do_preprocess = pipeline(
         pd.read_csv,
