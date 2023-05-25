@@ -128,7 +128,7 @@ def main(args: DictConfig):
         epochs=args.training.epochs,
         max_grad_norm=args.training.max_grad_norm,
         do_evaluate=evaluate_finetuning(
-            evaluation_threshold=args.evaluation_threshold,
+            evaluation_threshold=args.training.evaluation_threshold,
         ),
         get_loss=fine_tuning_loss(loss_fn=mean_binary_cross_entropy),
         gradient_accumulation_steps=args.training.gradient_accumulation_steps,
