@@ -129,7 +129,7 @@ def main(args: DictConfig):
         do_evaluate=evaluate_pretraining(),
         use_mlflow=use_mlflow,
         dataloader_num_workers=args.training.dataloader_num_workers,
-        model_saving_callback=get_adapter_saver(args.model.adapter.name) if adapters_included else save_transformer_model
+        model_saving_callback=get_adapter_saver("pretraining") if adapters_included else save_transformer_model
     )
 
     logger.warning("Training complete.")
