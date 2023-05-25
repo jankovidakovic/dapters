@@ -63,7 +63,10 @@ def setup_adapters(model, args: DictConfig, log_fn=logger.info):
             else:
                 log_fn(f"No pretrained adapter specified for pretraining, initializing a new adapter")
                 model.add_adapter(adapter_name="pretraining",
-                                  config=AdapterConfig.load(args.model.adapters.pretraining.config))
+                                  config=AdapterConfig.load(
+                                      args.model.adapters.pretraining.config,
+                                      reduction_factor=args.model.adapters.pretraining.reduction_factor
+                                  ))
                 if args.model.adapters.pretraining.with_head:
                     log_fn(f"Adding a masked language modeling head to the adapter")
                     model.add_masked_lm_head("pretraining")  # masterchef
@@ -82,7 +85,10 @@ def setup_adapters(model, args: DictConfig, log_fn=logger.info):
             else:
                 log_fn(f"No pretrained adapter specified for finetuning, initializing a new adapter")
                 model.add_adapter(adapter_name="finetuning",
-                                  config=AdapterConfig.load(args.model.adapters.finetuning.config))
+                                  config=AdapterConfig.load(
+                                      args.model.adapters.finetuning.config,
+                                      reduction_factor=args.model.adapters.finetuning.reduction_factor
+                                  ))
                 if args.model.adapters.finetuning.with_head:
                     log_fn(f"Adding a classification head to the adapter")
                     if num_heads > 0:
@@ -100,6 +106,8 @@ def setup_adapters(model, args: DictConfig, log_fn=logger.info):
         model.set_active_adapters(adapter_setup)
 
         log_fn(f"{num_heads = }")
+
+        log_fn(model.adapter_summary())
 
     else:
         log_fn(f"No adapters specified in config, skipping")
