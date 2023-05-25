@@ -1,7 +1,7 @@
 defaults:
   - misc
   - data: dummy
-  - model: default
+  - model: finetuning
   - tokenizer: default
   - optimizer: finetuning
   - training: finetuning
