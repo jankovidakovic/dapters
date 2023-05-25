@@ -14,7 +14,7 @@ from src.model_utils import setup_adapters, maybe_compile, set_device
 from src.preprocess.steps import multihot_to_list, to_hf_dataset, hf_map, convert_to_torch, sequence_columns
 from src.trainer import train, fine_tuning_loss, evaluate_finetuning
 from src.utils import get_labels, get_tokenization_fn, setup_optimizers, maybe_tf32, get_tokenizer, \
-    pipeline, mean_binary_cross_entropy, save_adapter_model, save_transformer_model
+    pipeline, mean_binary_cross_entropy, save_adapter_model, save_transformer_model, get_adapter_saver
 
 logger = logging.getLogger(__name__)
 
@@ -135,7 +135,7 @@ def main(args: DictConfig):
         use_mlflow=use_mlflow,
         evaluate_on_train=args.training.evaluate_on_train,
         dataloader_num_workers=args.training.dataloader_num_workers,
-        model_saving_callback=partial(save_adapter_model, adapter_name=args.adapters.adapter_name)
+        model_saving_callback=get_adapter_saver("finetuning")
         if adapters_included
         else save_transformer_model
     )
