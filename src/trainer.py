@@ -176,7 +176,7 @@ def train(
         logger.warning(f"Saving checkpoint at the end of epoch {epoch}...")
         save_checkpoint(
             model=model,  # noqa
-            checkpoint_name=f"{global_step}-ckpt",
+            checkpoint_name=f"{epoch}-ckpt",
             use_mlflow=use_mlflow,
             model_saving_callback=model_saving_callback
         )
