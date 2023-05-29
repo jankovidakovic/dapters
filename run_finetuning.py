@@ -24,6 +24,8 @@ def main(args: DictConfig):
     # args = parse_args("finetuning")
     logger.info(OmegaConf.to_yaml(args))
 
+    logger.warning(f"output_dir={hydra.core.hydra_config.HydraConfig.get().runtime.output_dir}")
+
     os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
