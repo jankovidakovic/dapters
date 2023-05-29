@@ -155,11 +155,11 @@ def get_adapter_saver(adapter_name: str):
 
 def save_checkpoint(
         model: PreTrainedModel,
-        global_step: int,
+        checkpoint_name: str,
         use_mlflow: bool = False,
         model_saving_callback: Callable = save_transformer_model
 ):
-    checkpoint_name = f"{global_step}-ckpt"  # changed the scheme
+    # kcheckpoint_name = f"{global_step}-ckpt"  # changed the scheme
     output_dir = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir  # okay cool
     output_dir = os.path.join(output_dir, checkpoint_name)  # moze
     output_dir = os.path.abspath(output_dir)

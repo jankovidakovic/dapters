@@ -176,7 +176,7 @@ def train(
         logger.warning(f"Saving checkpoint at the end of epoch {epoch}...")
         save_checkpoint(
             model=model,  # noqa
-            global_step=epoch,
+            checkpoint_name=f"{global_step}-ckpt",
             use_mlflow=use_mlflow,
             model_saving_callback=model_saving_callback
         )
@@ -228,6 +228,13 @@ def train(
                                    Best_value: {best_metric_value}""")
                     early_stopping_step = 0
                     best_metric_value = current_metric_value
+                    # at this point, we save as "best_checkpoint"
+                    save_checkpoint(
+                        model=model,  # noqa
+                        checkpoint_name="best_checkpoint",
+                        use_mlflow=use_mlflow,
+                        model_saving_callback=model_saving_callback,
+                    )
 
 
 def eval_loss_only(
