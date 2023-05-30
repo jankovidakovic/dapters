@@ -99,7 +99,7 @@ def main():
     checkpoint_step = args.checkpoint.split("/")[-1].split("-")[0]
 
     tokenizer = AutoTokenizer.from_pretrained(
-        args.checkpoint,  # TODO - wrong
+        "roberta-base",
         model_max_length=64,
         do_lower_case=True,
     )
