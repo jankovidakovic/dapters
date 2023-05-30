@@ -294,7 +294,7 @@ def do_predict(
     references = torch.empty(data_len, num_labels, device="cpu", dtype=torch.float32)
 
     if output_hidden_states:
-        hidden_states = torch.empty(data_len, model.config.hidden_size, device="cpu", dtype=torch.float32)
+        hidden_states = np.empty(shape=(data_len, model.config.hidden_size), dtype=float)
 
     model.eval()
     for i, batch in tqdm(enumerate(dataloader), total=len(dataloader), desc="Prediction loop"):
