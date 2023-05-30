@@ -153,8 +153,8 @@ def main():
         collate_fn=DefaultDataCollator(return_tensors="pt")
     )
 
-    source_predictions, source_references, source_hidden_states = do_predict(model, source_dataloader, return_hidden_states=True)
-    target_predictions, target_references, target_hidden_states = do_predict(model, target_dataloader, return_hidden_states=True)
+    source_predictions, source_references, source_hidden_states = do_predict(model, source_dataloader, output_hidden_states=True)
+    target_predictions, target_references, target_hidden_states = do_predict(model, target_dataloader, output_hidden_states=True)
 
     source_metrics = compute_metrics(source_predictions, source_references, "source")
     logger.warning(pformat(source_metrics))

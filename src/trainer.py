@@ -278,7 +278,7 @@ def eval_loss_only(
 def do_predict(
         model: nn.Module,
         dataloader: DataLoader,
-        return_hidden_states: bool = False
+        output_hidden_states: bool = False
 ) -> Union[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
     """ Runs inference using the given dataloader.
     Model outputs are transformed to probabilities using sigmoid function.
@@ -293,25 +293,25 @@ def do_predict(
     predictions = torch.empty(data_len, num_labels, device="cpu", dtype=torch.float32)
     references = torch.empty(data_len, num_labels, device="cpu", dtype=torch.float32)
 
-    if return_hidden_states:
+    if output_hidden_states:
         hidden_states = torch.empty(data_len, model.config.hidden_size, device="cpu", dtype=torch.float32)
 
     model.eval()
     for i, batch in tqdm(enumerate(dataloader), total=len(dataloader), desc="Prediction loop"):
         set_device(batch, model.device)
-        output = model(**batch)
+        output = model(**batch, output_hidden_states=output_hidden_states)
         print(output.keys())
         batch_slice = slice(i * dataloader.batch_size, (i + 1) * dataloader.batch_size)
 
-        if return_hidden_states:
-            hidden_states[batch_slice, :] = get_cls_token(output["last_hidden_state"]).detach().cpu().numpy()
+        if output_hidden_states:
+            hidden_states[batch_slice, :] = get_cls_token(output.hidden_states[-1]).detach().cpu().numpy()
 
         predictions[batch_slice] = output["logits"].detach().cpu()
         references[batch_slice] = batch["labels"].detach().cpu()
 
     model.train()
 
-    if return_hidden_states:
+    if output_hidden_states:
         return predictions, references, hidden_states
     else:
         return predictions, references
