@@ -303,7 +303,7 @@ def do_predict(
         batch_slice = slice(i * dataloader.batch_size, (i + 1) * dataloader.batch_size)
 
         if return_hidden_states:
-            hidden_states[batch_slice, :] = get_cls_token(output.last_hidden_state).detach().cpu().numpy()
+            hidden_states[batch_slice, :] = get_cls_token(output["last_hidden_state"]).detach().cpu().numpy()
 
         predictions[batch_slice] = output["logits"].detach().cpu()
         references[batch_slice] = batch["labels"].detach().cpu()
