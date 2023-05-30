@@ -300,6 +300,7 @@ def do_predict(
     for i, batch in tqdm(enumerate(dataloader), total=len(dataloader), desc="Prediction loop"):
         set_device(batch, model.device)
         output = model(**batch)
+        print(output.keys())
         batch_slice = slice(i * dataloader.batch_size, (i + 1) * dataloader.batch_size)
 
         if return_hidden_states:
