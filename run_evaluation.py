@@ -173,8 +173,8 @@ def main():
 
     # now we obtain domain shift!
 
-    source_domain = Domain(name="source", representations=source_hidden_states.numpy())
-    target_domain = Domain(name="target", representations=target_hidden_states.numpy())
+    source_domain = Domain(name="source", representations=source_hidden_states, cluster_ids=None)
+    target_domain = Domain(name="target", representations=target_hidden_states, cluster_ids=None)
 
     domain_collection = DomainCollection(
         domains=[source_domain, target_domain], pca_dim=0.95
