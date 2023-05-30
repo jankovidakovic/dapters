@@ -132,8 +132,8 @@ def main():
         convert_to_torch(columns=sequence_columns)
     )
 
-    source_dataset = do_preprocess(args.dataset_path[0])
-    target_dataset = do_preprocess(args.dataset_paths[1])
+    source_dataset = do_preprocess(args.source_dataset_path)
+    target_dataset = do_preprocess(args.target_dataset_path)
 
     source_dataloader = DataLoader(
         source_dataset,
