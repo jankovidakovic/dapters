@@ -1,27 +1,30 @@
 import logging
+import torch
 import os.path
 from argparse import ArgumentParser
 from pprint import pformat
 
 import mlflow
+import numpy as np
 import pandas as pd
 from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, DefaultDataCollator
 
+from src.distances.pairwise_distances import compute_pairwise_distances
 from src.preprocess.steps import multihot_to_list, to_hf_dataset, hf_map, convert_to_torch, sequence_columns
-from src.trainer import evaluate_finetuning
+from src.trainer import evaluate_finetuning, do_predict, compute_metrics
+from src.types import Domain, DomainCollection
 from src.utils import setup_logging, get_labels, get_tokenization_fn, pipeline
-
-import torch
 
 logger = logging.getLogger(__name__)
 
 
 def main():
+    # TODO - we need to be able to load the adapter setup as well
+    #   TODO -> just reuse hydra config
 
     os.environ["TOKENIZERS_PARALLELISM"] = "0"
     os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
-
 
     parser = ArgumentParser("Evaluation of saved checkpoint on multiple domains")
 
@@ -32,18 +35,23 @@ def main():
     )
 
     parser.add_argument(
-        "--dataset_paths",
-        type=str,
-        nargs="+",
-        help="Paths to the datasets to evaluate on.",
+        "--source_dataset_path",
+        help="Filesystem path to the evaluation dataset from source domain"
     )
 
     parser.add_argument(
-        "--dataset_names",
-        type=str,
-        nargs="+",
-        help="Names to use for the datasets. Metrics will be logged with "
-             "the provided names as prefixes.",
+        "--target_dataset_path",
+        help="Filesystem path to the evaluation dataset from target domain"
+    )
+
+    parser.add_argument(
+        "--source_dataset_name",
+        help="Source dataset name to be used in metric logging"
+    )
+
+    parser.add_argument(
+        "--target_dataset_name",
+        help="Target dataset name to be used in metric logging"
     )
 
     parser.add_argument(
@@ -91,7 +99,7 @@ def main():
     checkpoint_step = args.checkpoint.split("/")[-1].split("-")[0]
 
     tokenizer = AutoTokenizer.from_pretrained(
-        args.checkpoint,
+        args.checkpoint,  # TODO - wrong
         model_max_length=64,
         do_lower_case=True,
     )
@@ -111,60 +119,78 @@ def main():
         num_labels=len(labels)
     )  # sumnjivo tho  -- ma moze
 
-    model = model.to("cuda")
-    # removed torch.compile because its not even faster and it doesnt really work with adapters
+    model = model.to("cuda")  # TODO - device
 
-    logger.warning(f"Model successfully loaded. ")
+    do_preprocess = pipeline(
+        pd.read_csv,
+        multihot_to_list(
+            label_columns=labels,
+            result_column="labels"
+        ),
+        to_hf_dataset,
+        hf_map(do_tokenize, batched=True),
+        convert_to_torch(columns=sequence_columns)
+    )
 
-    for dataset_name, dataset_path in zip(args.dataset_names, args.dataset_paths):
-        # evaluate checkpoint on dataset
-        # load datasets
-        do_preprocess = pipeline(
-            pd.read_csv,
-            multihot_to_list(
-                label_columns=labels,
-                result_column="labels"
-            ),
-            to_hf_dataset,
-            hf_map(do_tokenize, batched=True),
-            convert_to_torch(columns=sequence_columns)
-        )
+    source_dataset = do_preprocess(args.dataset_path[0])
+    target_dataset = do_preprocess(args.dataset_paths[1])
 
-        dataset = do_preprocess(dataset_path)
+    source_dataloader = DataLoader(
+        source_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=4,
+        pin_memory=True,
+        collate_fn=DefaultDataCollator(return_tensors="pt")
+    )
 
-        logger.warning(f"Dataset {dataset_name} processed successfully.")
+    target_dataloader = DataLoader(
+        target_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=4,
+        pin_memory=True,
+        collate_fn=DefaultDataCollator(return_tensors="pt")
+    )
 
-        dataloader = DataLoader(
-            dataset,
-            batch_size=args.batch_size,
-            shuffle=False,
-            num_workers=4,
-            pin_memory=True,
-            collate_fn=DefaultDataCollator(return_tensors="pt")
-        )
+    source_predictions, source_references, source_hidden_states = do_predict(model, source_dataloader, return_hidden_states=True)
+    target_predictions, target_references, target_hidden_states = do_predict(model, target_dataloader, return_hidden_states=True)
 
-        do_evaluate = evaluate_finetuning(
-            # default threshold
-            # default loss_fn
-        )
+    source_metrics = compute_metrics(source_predictions, source_references, "source")
+    logger.warning(pformat(source_metrics))
+    mlflow.log_metrics(
+        source_metrics,
+        step=int(checkpoint_step)
+    )
 
-        logger.warning(f"Evaluating on dataset: {dataset_name}")
+    target_metrics = compute_metrics(target_predictions, target_references, "target")
+    logger.warning(pformat(target_metrics))
+    mlflow.log_metrics(
+        target_metrics,
+        step=int(checkpoint_step)
+    )
 
-        metrics = do_evaluate(
-            model=model,
-            eval_dataloader=dataloader,
-            prefix=dataset_name
-        )
+    # now we obtain domain shift!
 
-        logger.warning(pformat(metrics))
-        mlflow.log_metrics(
-            metrics,
-            step=int(checkpoint_step)
-        )
+    source_domain = Domain(name="source", representations=source_hidden_states.numpy())
+    target_domain = Domain(name="target", representations=target_hidden_states.numpy())
 
-        logger.warning(f"evaluation finished for {dataset_name}")
+    domain_collection = DomainCollection(domains=[source_domain, target_domain], pca_dim=0.95)
 
-    logger.warning(f"Evaluated all datasets on checkpoint {args.checkpoint}")
+    domain_distances = compute_pairwise_distances(domain_collection)
+    logger.warning(pformat(domain_distances))
+
+    mlflow.log_metrics(
+        domain_distances["centroid_distances"],
+        step=int(checkpoint_step)
+    )
+    mlflow.log_metrics(
+        domain_distances["domain_divergence_metrics"],
+        step=int(checkpoint_step)
+    )
+
+    # this should actually work now, no?
+
     mlflow.end_run()
 
 

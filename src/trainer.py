@@ -1,7 +1,7 @@
 import gc
 import logging
 from pprint import pformat
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
 import numpy as np
 import torch.optim
@@ -18,7 +18,7 @@ from torch.nn.functional import binary_cross_entropy_with_logits, cross_entropy
 from transformers.modeling_outputs import SequenceClassifierOutput, MaskedLMOutput
 from transformers.utils import ModelOutput
 
-from src.utils import save_checkpoint, is_improved, set_device, save_transformer_model
+from src.utils import save_checkpoint, is_improved, set_device, save_transformer_model, get_cls_token
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +33,7 @@ def fine_tuning_loss(
     :param loss_fn:
     :return:
     """
+
     def loss(
             batch: BatchEncoding,
             model_output: SequenceClassifierOutput
@@ -105,7 +106,6 @@ def train(
     if use_ray_tune:
         from ray.air import session
 
-
     # setup train dataloader
     train_dataloader = DataLoader(
         train_dataset,
@@ -141,7 +141,6 @@ def train(
         logger.warning(f"Epoch steps is {epoch_steps}, but dataloader has {len(train_dataloader)} batches.")
         raise RuntimeError("ree")
 
-
     for epoch in range(1, epochs + 1):
 
         epoch_step = 0
@@ -159,7 +158,7 @@ def train(
             loss.backward()
 
             if (epoch_step % gradient_accumulation_steps == 0
-                or epoch_step == len(train_dataloader)
+                    or epoch_step == len(train_dataloader)
             ):
                 # clip gradients if enabled
                 if max_grad_norm:
@@ -212,9 +211,9 @@ def train(
             if use_early_stopping and epoch >= args.early_stopping.start:
                 current_metric_value = metrics[args.early_stopping.metric_for_best_model]
                 if not is_improved(
-                    current_metric_value,
-                    best_metric_value,  # noqa
-                    args.early_stopping.greater_is_better
+                        current_metric_value,
+                        best_metric_value,  # noqa
+                        args.early_stopping.greater_is_better
                 ):
                     early_stopping_step += 1  # noqa
                     if early_stopping_step == args.early_stopping.patience:
@@ -223,7 +222,8 @@ def train(
                                        f"{args.early_stopping.patience}. Stopping the run.")
                         return
                 else:
-                    logger.warning(f"""Resetting early stopping patience based on {args.early_stopping.metric_for_best_model}.
+                    logger.warning(
+                        f"""Resetting early stopping patience based on {args.early_stopping.metric_for_best_model}.
                                    Current value: {current_metric_value}
                                    Best_value: {best_metric_value}""")
                     early_stopping_step = 0
@@ -278,7 +278,8 @@ def eval_loss_only(
 def do_predict(
         model: nn.Module,
         dataloader: DataLoader,
-) -> (torch.Tensor, torch.Tensor):
+        return_hidden_states: bool = False
+) -> Union[(torch.Tensor, torch.Tensor), (torch.Tensor, torch.Tensor, torch.Tensor)]:
     """ Runs inference using the given dataloader.
     Model outputs are transformed to probabilities using sigmoid function.
 
@@ -289,74 +290,79 @@ def do_predict(
 
     data_len = len(dataloader.dataset)  # noqa
     num_labels = model.config.num_labels
-    predictions = torch.empty(
-        data_len,
-        num_labels,
-        device="cpu",
-        dtype=torch.float32
-    )
-    references = torch.empty(
-        data_len,
-        num_labels,
-        device="cpu",
-        dtype=torch.float32
-    )
+    predictions = torch.empty(data_len, num_labels, device="cpu", dtype=torch.float32)
+    references = torch.empty(data_len, num_labels, device="cpu", dtype=torch.float32)
+
+    if return_hidden_states:
+        hidden_states = torch.empty(data_len, model.config.hidden_size, device="cpu", dtype=torch.float32)
 
     model.eval()
     for i, batch in tqdm(enumerate(dataloader), total=len(dataloader), desc="Prediction loop"):
         set_device(batch, model.device)
         output = model(**batch)
+        batch_slice = slice(i * dataloader.batch_size, (i + 1) * dataloader.batch_size)
 
-        batch_slice = slice(
-            i * dataloader.batch_size,
-            (i + 1) * dataloader.batch_size)
+        if return_hidden_states:
+            hidden_states[batch_slice, :] = get_cls_token(output.last_hidden_state).detach().cpu().numpy()
 
         predictions[batch_slice] = output["logits"].detach().cpu()
         references[batch_slice] = batch["labels"].detach().cpu()
 
     model.train()
 
-    return predictions, references
+    if return_hidden_states:
+        return predictions, references, hidden_states
+    else:
+        return predictions, references
+
+
+def compute_metrics(
+        predictions,
+        references,
+        prefix: str,
+        loss_fn=binary_cross_entropy_with_logits,
+        evaluation_threshold: float = 0.75
+):
+    metrics = {
+        f"{prefix}_loss": loss_fn(
+            input=predictions,
+            target=references,
+            reduction="mean"
+        ).item()
+    }
+
+    predictions = (torch.sigmoid(predictions) > evaluation_threshold).int()  # noqa
+
+    averages = ["macro", "micro", "weighted"]
+
+    for average in averages:
+        prf = precision_recall_fscore_support(
+            y_true=references,
+            y_pred=predictions,
+            average=average,
+            zero_division=0
+        )[:-1]
+
+        for name, value in zip(["precision", "recall", "f1"], prf):
+            metrics[f"{prefix}_{average}-{name}"] = value
+
+    return metrics
 
 
 def evaluate_finetuning(
         evaluation_threshold: float = 0.75,
-        loss_fn = binary_cross_entropy_with_logits,
+        loss_fn=binary_cross_entropy_with_logits,
 ) -> Callable[[nn.Module, DataLoader, str], dict[str, float]]:
     def evaluate(
-        model: nn.Module,
-        eval_dataloader: DataLoader,
-        prefix: str = "eval"
+            model: nn.Module,
+            eval_dataloader: DataLoader,
+            prefix: str = "eval"
     ) -> dict[str, float]:
-
+        model.eval()
         predictions, references = do_predict(model, eval_dataloader)
-
-        metrics = {
-            f"{prefix}_loss": loss_fn(
-                input=predictions,
-                target=references,
-                reduction="mean"
-            ).item()
-        }
-
-        predictions = (torch.sigmoid(predictions) > evaluation_threshold).int()  # noqa
-
-        averages = ["macro", "micro", "weighted"]
-
-        for average in averages:
-            prf = precision_recall_fscore_support(
-                y_true=references,
-                y_pred=predictions,
-                average=average,
-                zero_division=0
-            )[:-1]
-
-            for name, value in zip(["precision", "recall", "f1"], prf):
-                metrics[f"{prefix}_{average}-{name}"] = value
-
         model.train()
 
-        return metrics
+        return compute_metrics(predictions, references, prefix, loss_fn, evaluation_threshold)
 
     return evaluate
 
@@ -393,6 +399,5 @@ def evaluate_pretraining():
 
         model.train()
         return metrics
-
 
     return do_evaluate

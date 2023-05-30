@@ -1,5 +1,6 @@
 import logging
 from dataclasses import dataclass, field
+from typing import Optional
 
 import numpy as np
 from sklearn.decomposition import PCA
@@ -22,8 +23,11 @@ class Domain:
     name: str
     representations: np.ndarray
     pca_representations: np.ndarray = field(init=False)
-    centroid: np.ndarray
-    cluster_ids: np.ndarray
+    centroid: np.ndarray = field(init=False)
+    cluster_ids: Optional[np.ndarray]  # do I have this? I dont think so -> doesnt matter anyways
+
+    def __post_init__(self):
+        self.centroid = np.mean(self.representations, axis=0)
 
     def apply_pca(self, pca: PCA):
         self.pca_representations = pca.transform(self.representations)
