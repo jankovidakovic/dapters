@@ -1,7 +1,7 @@
 import gc
 import logging
 from pprint import pformat
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, Tuple
 
 import numpy as np
 import torch.optim
@@ -279,7 +279,7 @@ def do_predict(
         model: nn.Module,
         dataloader: DataLoader,
         return_hidden_states: bool = False
-) -> Union[(torch.Tensor, torch.Tensor), (torch.Tensor, torch.Tensor, torch.Tensor)]:
+) -> Union[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
     """ Runs inference using the given dataloader.
     Model outputs are transformed to probabilities using sigmoid function.
 
