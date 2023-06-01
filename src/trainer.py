@@ -208,33 +208,37 @@ def train(
                     {"epoch": epoch, **metrics}
                 )  # this KILLS the run if the metrics are bad
 
-            if use_early_stopping and epoch >= args.early_stopping.start:
+            if use_early_stopping:
                 current_metric_value = metrics[args.early_stopping.metric_for_best_model]
-                if not is_improved(
+                #  and epoch >= args.early_stopping.start:
+                if is_improved(
                         current_metric_value,
                         best_metric_value,  # noqa
                         args.early_stopping.greater_is_better
                 ):
-                    early_stopping_step += 1  # noqa
-                    if early_stopping_step == args.early_stopping.patience:
-                        # early stopping
-                        logger.warning(f"Early stopping patience has reached the critical threshold of "
-                                       f"{args.early_stopping.patience}. Stopping the run.")
-                        return
-                else:
-                    logger.warning(
-                        f"""Resetting early stopping patience based on {args.early_stopping.metric_for_best_model}.
-                                   Current value: {current_metric_value}
-                                   Best_value: {best_metric_value}""")
-                    early_stopping_step = 0
-                    best_metric_value = current_metric_value
-                    # at this point, we save as "best_checkpoint"
+                    # save checkpoint due to the metric improvement
                     save_checkpoint(
                         model=model,  # noqa
                         checkpoint_name="best_checkpoint",
                         use_mlflow=use_mlflow,
                         model_saving_callback=model_saving_callback,
                     )
+
+                    if epoch >= args.early_stopping.start:  # early stopping is active
+                        logger.warning(
+                            f"""Resetting early stopping patience based on {args.early_stopping.metric_for_best_model}.
+                                       Current value: {current_metric_value}
+                                       Best_value: {best_metric_value}""")
+                        early_stopping_step = 0
+                        best_metric_value = current_metric_value
+
+                elif epoch >= args.early_stopping.start:  # metric has not improved and early stopping is active
+                    early_stopping_step += 1  # noqa
+                    if early_stopping_step == args.early_stopping.patience:
+                        # early stopping
+                        logger.warning(f"Early stopping patience has reached the critical threshold of "
+                                       f"{args.early_stopping.patience}. Stopping the run.")
+                        return
 
 
 def eval_loss_only(
