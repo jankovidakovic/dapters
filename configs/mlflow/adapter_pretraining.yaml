@@ -2,5 +2,5 @@ defaults:
   - default
 
 experiment: pretraining
-run_name: '[A-PT] BS=2048; LR=${optimizer.learning_rate}; RF=${model.adapter.reduction_factor}'
+run_name: '[A-PT] BS=2048; LR=${optimizer.learning_rate}; RF=${model.adapters.pretraining.reduction_factor}'
 run_description: 'Adapter Pretraining.'
