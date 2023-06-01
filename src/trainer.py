@@ -189,7 +189,7 @@ def train(
             if use_mlflow:
                 mlflow.log_metrics(
                     metrics=metrics,
-                    step=global_step
+                    step=epoch
                 )
 
         if eval_dataloader:
@@ -200,7 +200,7 @@ def train(
             if use_mlflow:
                 mlflow.log_metrics(
                     metrics=metrics,
-                    step=global_step
+                    step=epoch
                 )
 
             if use_ray_tune:
