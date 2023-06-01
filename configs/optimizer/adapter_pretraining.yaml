@@ -1,0 +1,7 @@
+defaults:
+    - default
+
+learning_rate: 5e-4
+adam_epsilon: 1e-6
+warmup_percentage: 0.1
+weight_decay: 0.01

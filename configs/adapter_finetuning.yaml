@@ -1,13 +1,16 @@
 defaults:
   - finetuning
   - override mlflow: adapter_finetuning
+  - override optimizer: adapter_finetuning
+  - override training: adapter_finetuning
+  - override early_stopping: adapter_finetuning
   - _self_
 
 model:
   adapters:
     finetuning:
       config: pfeiffer
-      reduction_factor: ???
+      reduction_factor: 4  # best hparam
       with_head: True
     train:
       - finetuning

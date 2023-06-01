@@ -1,4 +1,5 @@
 defaults:
   - finetuning
 
-epochs: 100
+patience: 20
+start: 10

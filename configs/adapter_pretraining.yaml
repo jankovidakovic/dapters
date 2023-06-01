@@ -1,11 +1,24 @@
 defaults:
-  - pretraining
+  - misc
+  - data: dummy
+  - tokenizer: default
+  - model: default
+  - optimizer: adapter_pretraining
+  - training: pretraining_kantica
+  - early_stopping: adapter_pretraining
+  - mlflow: adapter_pretraining
+  - _self_
+
+mlm_probability: 0.15
+
+training:
+  epochs: 100 # adapters need a lot
 
 model:
   adapters:
     pretraining:
       config: pfeiffer
-      reduction_factor: ???
+      reduction_factor: 8
       with_head: True
     train:
       - pretraining

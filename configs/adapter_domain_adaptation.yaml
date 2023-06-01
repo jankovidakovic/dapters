@@ -1,5 +1,5 @@
 defaults:
-  - finetuning
+  - adapter_finetuning
 
 model:
   adapters:
@@ -8,7 +8,7 @@ model:
       with_head: False
     finetuning:
       config: pfeiffer
-      reduction_factor: ???
+      reduction_factor: 4
       with_head: True
     train:
       - finetuning

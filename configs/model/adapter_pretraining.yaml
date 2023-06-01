@@ -1,6 +1,0 @@
-defaults:
-  - default
-  - adapter: bottleneck
-
-adapter:
-  name: pretraining

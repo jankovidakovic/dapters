@@ -6,3 +6,5 @@ epochs: 10
 gradient_accumulation_steps: 1
 evaluate_on_train: True
 evaluation_threshold: 0.75
+
+# this is fine as fuck

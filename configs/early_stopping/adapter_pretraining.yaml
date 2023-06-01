@@ -1,0 +1,4 @@
+patience: 10
+start: 5
+metric_for_best_model: eval_loss
+greater_is_better: False
