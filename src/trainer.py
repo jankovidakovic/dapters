@@ -282,6 +282,7 @@ def eval_loss_only(
 def do_predict(
         model: nn.Module,
         dataloader: DataLoader,
+        num_labels: int = 19,
         output_hidden_states: bool = False
 ) -> Union[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor]]:
     """ Runs inference using the given dataloader.
@@ -293,7 +294,7 @@ def do_predict(
     """
 
     data_len = len(dataloader.dataset)  # noqa
-    num_labels = model.config.num_labels
+    # num_labels = model.config.num_labels
     predictions = torch.empty(data_len, num_labels, device="cpu", dtype=torch.float32)
     references = torch.empty(data_len, num_labels, device="cpu", dtype=torch.float32)
 
