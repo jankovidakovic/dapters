@@ -1,0 +1,8 @@
+data_root: ???
+source_dataset_name: ???
+target_dataset_name: ???
+source_dataset_path: "${data.data_root}/${data.source_dataset_name}_dev.csv"
+target_dataset_path: "${data.data_root}/${data.target_dataset_name}_dev.csv"
+labels_path: "${data.data_root}/labels.json"
+num_labels: 19
+message_column: preprocessed
