@@ -159,7 +159,7 @@ def main(args: DictConfig):
         plt.savefig(pca_save_path, dpi=300, bbox_inches="tight")
         logger.warning(F"Plot saved successfully to {pca_save_path}")
         # log artifact to mlflow
-        mlflow.log_artifact(pca_save_path, artifact_path=f"{args.checkpoint_step}-pca.png")
+        mlflow.log_artifact(pca_save_path, artifact_path=f"pcas")
 
     # would be nice to also add PCA plots
 
