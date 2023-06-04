@@ -135,9 +135,8 @@ def main(args: DictConfig):
     source_domain = Domain(name="source", representations=source_hidden_states, cluster_ids=None)
     target_domain = Domain(name="target", representations=target_hidden_states, cluster_ids=None)
 
-    domain_collection = DomainCollection(
-        domains=[source_domain, target_domain], pca_dim=args.pca_dim
-    )  # its maybe because I increased the variance??
+    domain_collection = DomainCollection(domains=[source_domain, target_domain], pca_dim=0.95)  # its maybe because I increased the variance??
+    # TODO - pca-dim is currently unused, remove?
 
     domain_distances = compute_pairwise_distances(domain_collection)
     logger.warning(pformat(domain_distances))
