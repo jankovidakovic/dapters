@@ -5,6 +5,9 @@ defaults:
   - misc
   - _self_
 
+compute_metrics: ???
+plot_pca: ???
+
 batch_size: 128
 checkpoint_step: ???
 
