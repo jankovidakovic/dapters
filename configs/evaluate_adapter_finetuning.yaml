@@ -6,6 +6,7 @@ defaults:
   - _self_
 
 batch_size: 128
+checkpoint_step: ???
 
 # seems to be working
 # now we add configurations for evaluation

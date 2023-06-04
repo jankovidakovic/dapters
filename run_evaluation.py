@@ -47,13 +47,11 @@ def main(args: DictConfig):
         run_id=args.mlflow.run_id,
     )
 
-    checkpoint_name = os.path.abspath(os.path.normpath(args.checkpoint))
-    logger.warning(f"Running evaluation for checkpoint: {checkpoint_name}")
-
     # we also need to be able to load the finetuned adapter from checkpoint
 
     # extract checkpoint step
-    checkpoint_step = checkpoint_name.split("/")[-1].split("-")[0]
+    # checkpoint_step = checkpoint_name.split("/")[-1].split("-")[0]
+    # since we assume responsibility to the caller, why not just accept checkpoint step efrom the caller
 
     tokenizer = AutoTokenizer.from_pretrained(
         "roberta-base",
@@ -125,11 +123,11 @@ def main(args: DictConfig):
 
     source_metrics = compute_metrics(source_predictions, source_references, "source")
     logger.warning(pformat(source_metrics))
-    mlflow.log_metrics(source_metrics, step=int(checkpoint_step))
+    mlflow.log_metrics(source_metrics, step=int(args.checkpoint_step))
 
     target_metrics = compute_metrics(target_predictions, target_references, "target")
     logger.warning(pformat(target_metrics))
-    mlflow.log_metrics(target_metrics, step=int(checkpoint_step))
+    mlflow.log_metrics(target_metrics, step=int(args.checkpoint_step))
 
     # now we obtain domain shift!
 
@@ -144,10 +142,10 @@ def main(args: DictConfig):
     logger.warning(pformat(domain_distances))
 
     mlflow.log_metrics(
-        domain_distances["centroid_distances"], step=int(checkpoint_step)
+        domain_distances["centroid_distances"], step=int(args.checkpoint_step)
     )
     mlflow.log_metrics(
-        domain_distances["domain_divergence_metrics"], step=int(checkpoint_step)
+        domain_distances["domain_divergence_metrics"], step=int(args.checkpoint_step)
     )
 
     # this should actually work now, no?
