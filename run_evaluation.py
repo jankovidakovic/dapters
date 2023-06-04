@@ -1,20 +1,21 @@
 import logging
-import torch
+
+import hydra
 import os.path
-from argparse import ArgumentParser
 from pprint import pformat
 
 import mlflow
-import numpy as np
 import pandas as pd
+from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 from transformers import (
     AutoTokenizer,
     AutoModelForSequenceClassification,
-    DefaultDataCollator,
+    DefaultDataCollator, AutoAdapterModel,
 )
 
 from src.distances.pairwise_distances import compute_pairwise_distances
+from src.model_utils import setup_adapters, maybe_compile, set_device
 from src.preprocess.steps import (
     multihot_to_list,
     to_hf_dataset,
@@ -22,84 +23,34 @@ from src.preprocess.steps import (
     convert_to_torch,
     sequence_columns,
 )
-from src.trainer import evaluate_finetuning, do_predict, compute_metrics
+from src.trainer import do_predict, compute_metrics
 from src.types import Domain, DomainCollection
-from src.utils import setup_logging, get_labels, get_tokenization_fn, pipeline
+from src.utils import get_labels, get_tokenization_fn, pipeline
 
 logger = logging.getLogger(__name__)
 
 
-def main():
+@hydra.main(version_base="1.3", config_path="configs", config_name="evaluate_adapter_finetuning")
+def main(args: DictConfig):
     # TODO - we need to be able to load the adapter setup as well
     #   TODO -> just reuse hydra config
 
     os.environ["TOKENIZERS_PARALLELISM"] = "0"
     os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
 
-    parser = ArgumentParser("Evaluation of saved checkpoint on multiple domains")
-
-    parser.add_argument(
-        "--checkpoint",
-        type=str,
-        help="Paths to the checkpoints to evaluate.",
-    )
-
-    parser.add_argument(
-        "--source_dataset_path",
-        help="Filesystem path to the evaluation dataset from source domain",
-    )
-
-    parser.add_argument(
-        "--target_dataset_path",
-        help="Filesystem path to the evaluation dataset from target domain",
-    )
-
-    parser.add_argument(
-        "--source_dataset_name", help="Source dataset name to be used in metric logging"
-    )
-
-    parser.add_argument(
-        "--target_dataset_name", help="Target dataset name to be used in metric logging"
-    )
-
-    parser.add_argument(
-        "--mlflow_run_id", type=str, help="MLFlow run ID to log metrics to."
-    )
-    parser.add_argument(
-        "--mlflow_tracking_uri",
-        type=str,
-        default="http://localhost:34567",
-        help="MLFlow tracking URI.",
-    )
-
-    parser.add_argument(
-        "--labels_path",
-        type=str,
-        default="./labels.json",
-        help="Path to JSON file containing the labels.",
-    )
-
-    parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=128,
-        help="Batch size for evaluation. Default is 128.",
-    )
-
-    args = parser.parse_args()
-
-    setup_logging(None)
-
+    logger.info(OmegaConf.to_yaml(args))
     # load labels
-    labels = get_labels(args.labels_path)
+    labels = get_labels(args.data.labels_path)
 
-    mlflow.set_tracking_uri(args.mlflow_tracking_uri)
+    mlflow.set_tracking_uri(args.mlflow.tracking_uri)
     mlflow.start_run(
-        run_id=args.mlflow_run_id,
+        run_id=args.mlflow.run_id,
     )
 
     checkpoint_name = os.path.abspath(os.path.normpath(args.checkpoint))
     logger.warning(f"Running evaluation for checkpoint: {checkpoint_name}")
+
+    # we also need to be able to load the finetuned adapter from checkpoint
 
     # extract checkpoint step
     checkpoint_step = checkpoint_name.split("/")[-1].split("-")[0]
@@ -119,11 +70,22 @@ def main():
     )
 
     # load model
-    model = AutoModelForSequenceClassification.from_pretrained(
-        args.checkpoint,
-        problem_type="multi_label_classification",
-        num_labels=len(labels),
-    )  # sumnjivo tho  -- ma moze
+    if adapters_included := hasattr(args.model, "adapters"):
+        model = AutoAdapterModel.from_pretrained(
+            args.model.pretrained_model_name_or_path,
+            cache_dir=args.model.cache_dir,
+        )
+        model = setup_adapters(model, args)
+    else:
+        model = AutoModelForSequenceClassification.from_pretrained(
+            args.model.pretrained_model_name_or_path,
+            cache_dir=args.model.cache_dir,
+            problem_type="multi_label_classification",
+            num_labels=args.data.num_labels
+        )
+
+    model = maybe_compile(model, args)
+    model = set_device(model, args)
 
     model = model.to("cuda")  # TODO - device
 
@@ -135,14 +97,14 @@ def main():
         convert_to_torch(columns=sequence_columns),
     )
 
-    source_dataset = do_preprocess(args.source_dataset_path)
-    target_dataset = do_preprocess(args.target_dataset_path)
+    source_dataset = do_preprocess(args.data.source_dataset_path)
+    target_dataset = do_preprocess(args.data.target_dataset_path)
 
     source_dataloader = DataLoader(
         source_dataset,
         batch_size=args.batch_size,
         shuffle=False,
-        num_workers=4,
+        num_workers=8,
         pin_memory=True,
         collate_fn=DefaultDataCollator(return_tensors="pt"),
     )
@@ -151,17 +113,15 @@ def main():
         target_dataset,
         batch_size=args.batch_size,
         shuffle=False,
-        num_workers=4,
+        num_workers=8,
         pin_memory=True,
         collate_fn=DefaultDataCollator(return_tensors="pt"),
     )
 
     source_predictions, source_references, source_hidden_states = do_predict(
-        model, source_dataloader, output_hidden_states=True
-    )
+        model, source_dataloader, output_hidden_states=True)
     target_predictions, target_references, target_hidden_states = do_predict(
-        model, target_dataloader, output_hidden_states=True
-    )
+        model, target_dataloader, output_hidden_states=True)
 
     source_metrics = compute_metrics(source_predictions, source_references, "source")
     logger.warning(pformat(source_metrics))
@@ -177,8 +137,8 @@ def main():
     target_domain = Domain(name="target", representations=target_hidden_states, cluster_ids=None)
 
     domain_collection = DomainCollection(
-        domains=[source_domain, target_domain], pca_dim=0.95
-    )
+        domains=[source_domain, target_domain], pca_dim=args.pca_dim
+    )  # its maybe because I increased the variance??
 
     domain_distances = compute_pairwise_distances(domain_collection)
     logger.warning(pformat(domain_distances))

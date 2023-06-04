@@ -1,0 +1,18 @@
+defaults:
+  - model: default
+  - mlflow: evaluation
+  - data: evaluation
+  - misc
+  - _self_
+
+batch_size: 128
+
+# seems to be working
+# now we add configurations for evaluation
+model:
+  adapters:
+    finetuning:
+      pretrained_path: ???
+      with_head: True
+
+# now we add configurations for evaluation
