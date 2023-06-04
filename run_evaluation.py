@@ -85,7 +85,8 @@ def main(args: DictConfig):
     model = maybe_compile(model, args)
     model = set_device(model, args)
 
-    model = model.to("cuda")  # TODO - device
+    print(model)
+
 
     do_preprocess = pipeline(
         pd.read_csv,

@@ -82,6 +82,9 @@ def setup_adapters(model, args: DictConfig, log_fn=logger.info):
                     f"Loading pretrained adapter from {os.path.abspath(args.model.adapters.finetuning.pretrained_path)}")
                 model.load_adapter(args.model.adapters.finetuning.pretrained_path,
                                    load_as="finetuning", with_head=args.model.adapters.finetuning.with_head)
+                if args.model.adapters.finetuning.with_head:
+                    log_fn(f"Loaded head for finetuning adapter from pretrained checkpoint")
+                    num_heads += 1
             else:
                 log_fn(f"No pretrained adapter specified for finetuning, initializing a new adapter")
                 model.add_adapter(adapter_name="finetuning",
