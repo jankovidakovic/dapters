@@ -55,7 +55,7 @@ def main(args: DictConfig):
     # checkpoint_step = checkpoint_name.split("/")[-1].split("-")[0]
     # since we assume responsibility to the caller, why not just accept checkpoint step efrom the caller
 
-    tokenizer = AutoTokenizer.from_pretrained("roberta-base", model_max_length=64, do_lower_case=True,)
+    tokenizer = AutoTokenizer.from_pretrained(args.model.pretrained_model_name_or_path, model_max_length=64, do_lower_case=True,)
 
     do_tokenize = get_tokenization_fn(tokenizer=tokenizer, padding="max_length", truncation=True, max_length=64, message_column="preprocessed",)
 
@@ -66,6 +66,9 @@ def main(args: DictConfig):
     else:
         model = AutoModelForSequenceClassification.from_pretrained(args.model.pretrained_model_name_or_path,
             cache_dir=args.model.cache_dir, problem_type="multi_label_classification", num_labels=args.data.num_labels)
+
+        # TODO - this doesnt really work if the model is only pretrained
+        # but that doesnt matter (for now)
 
     model = maybe_compile(model, args)
     model = set_device(model, args)
