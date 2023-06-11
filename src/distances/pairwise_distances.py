@@ -43,11 +43,11 @@ def compute_domain_divergences(
             domain_collection[target].representations,
             n_moments=10
         ),
-        "cmd_100": cmd(
-            domain_collection[source].representations,
-            domain_collection[target].representations,
-            n_moments=100
-        )
+        # "cmd_100": cmd(
+            #domain_collection[source].representations,
+            # domain_collection[target].representations,
+            # n_moments=100
+        # )
     }
 
 
